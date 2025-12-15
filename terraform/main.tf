@@ -15,15 +15,3 @@ provider "aws" {
   secret_key = var.aws_secret_access_key
 }
 
-# Default VPC
-data "aws_vpc" "default" {
-  default = true
-}
-
-# Default subnets
-data "aws_subnets" "default" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
-}
