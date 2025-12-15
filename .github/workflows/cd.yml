@@ -17,11 +17,14 @@ jobs:
     - uses: hashicorp/setup-terraform@v3
   
     - name: Verify AWS credentials
-      run: aws sts get-caller-identity
+      run: |
+        export AWS_EC2_METADATA_DISABLED=true
+        aws sts get-caller-identity
       env:
         AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
         AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
         AWS_REGION: eu-north-1
+
   
     - name: Terraform Init
       working-directory: terraform
