@@ -1,20 +1,27 @@
 variable "aws_region" {
-  default = "eu-north-1"
+  description = "AWS region"
+  default     = "eu-north-1"
 }
 
 variable "ecr_image_uri" {
   description = "ECR image URI with tag"
-  image = var.ecr_image_uri
+  type        = string
 }
 
 variable "app_keys" {
-  default = "dummy1,dummy2"
+  description = "Strapi APP_KEYS"
+  type        = string
+  default     = "dummy1,dummy2"
 }
 
 variable "api_token_salt" {
-  default = "dummy_salt"
+  description = "Strapi API token salt"
+  type        = string
+  default     = "dummy_salt"
 }
 
 variable "admin_jwt_secret" {
-  default = "dummy_admin"
+  description = "Strapi admin JWT secret"
+  type        = string
+  default     = "dummy_admin"
 }
