@@ -4,6 +4,7 @@ variable "aws_region" {
 
 variable "ecr_image_uri" {
   description = "ECR image URI with tag"
+  image = var.ecr_image_uri
 }
 
 variable "app_keys" {
