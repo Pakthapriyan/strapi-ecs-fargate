@@ -1,17 +1,17 @@
-############################
-# ECS CLUSTER
-############################
-resource "aws_ecs_cluster" "strapi" {
-  name = "paktha-strapi-cluster"
+data "aws_vpc" "default" {
+  default = true
 }
 
-############################
-# SECURITY GROUP
-############################
+data "aws_subnets" "default" {
+  filter {
+    name   = "vpc-id"
+    values = [data.aws_vpc.default.id]
+  }
+}
+
 resource "aws_security_group" "strapi" {
-  name        = "paktha-strapi-ecs-sg"
-  description = "Allow Strapi traffic"
-  vpc_id      = data.aws_vpc.default.id
+  name   = "paktha-strapi-sg"
+  vpc_id = data.aws_vpc.default.id
 
   ingress {
     from_port   = 1337
@@ -28,9 +28,14 @@ resource "aws_security_group" "strapi" {
   }
 }
 
-############################
-# TASK DEFINITION
-############################
+resource "aws_ecs_cluster" "this" {
+  name = "paktha-strapi-cluster"
+}
+
+resource "aws_cloudwatch_log_group" "strapi" {
+  name = "/ecs/paktha-strapi"
+}
+
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "paktha-strapi-task"
   requires_compatibilities = ["FARGATE"]
@@ -38,18 +43,17 @@ resource "aws_ecs_task_definition" "strapi" {
   cpu                      = "512"
   memory                   = "1024"
 
+  execution_role_arn = aws_iam_role.ecs_execution_role.arn
+  task_role_arn      = aws_iam_role.ecs_task_role.arn
+
   container_definitions = jsonencode([
     {
       name  = "strapi"
-      image = var.ecr_image_uri
-      essential = true
+      image = var.image_uri
 
-      portMappings = [
-        {
-          containerPort = 1337
-          hostPort      = 1337
-        }
-      ]
+      portMappings = [{
+        containerPort = 1337
+      }]
 
       environment = [
         { name = "NODE_ENV", value = "production" },
@@ -57,16 +61,22 @@ resource "aws_ecs_task_definition" "strapi" {
         { name = "API_TOKEN_SALT", value = var.api_token_salt },
         { name = "ADMIN_JWT_SECRET", value = var.admin_jwt_secret }
       ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.strapi.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
     }
   ])
 }
 
-############################
-# ECS SERVICE
-############################
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
-  cluster         = aws_ecs_cluster.strapi.id
+  cluster         = aws_ecs_cluster.this.id
   task_definition = aws_ecs_task_definition.strapi.arn
   desired_count   = 1
   launch_type     = "FARGATE"
