@@ -33,11 +33,8 @@ jobs:
 
       - name: Terraform Apply
         working-directory: terraform
-        run: terraform apply -auto-approve -input=false \
-          -var="image_uri=${{ github.event.inputs.image_uri }}" \
-          -var="app_keys=${{ secrets.APP_KEYS }}" \
-          -var="api_token_salt=${{ secrets.API_TOKEN_SALT }}" \
-          -var="admin_jwt_secret=${{ secrets.ADMIN_JWT_SECRET }}"
+        run: terraform apply -auto-approve -input=false -var="image_uri=301782007642.dkr.ecr.eu-north-1.amazonaws.com/paktha-strapi-ecs:latest" -var="app_keys=***" -var="api_token_salt=***" -var="admin_jwt_secret=***"
+
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
