@@ -60,14 +60,7 @@ resource "aws_ecs_task_definition" "strapi" {
         { name = "ADMIN_JWT_SECRET", value = var.admin_jwt_secret }
       ]
 
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.strapi.name
-          awslogs-region        = var.aws_region
-          awslogs-stream-prefix = "ecs"
-        }
-      }
+      
     }
   ])
 }
