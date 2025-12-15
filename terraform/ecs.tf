@@ -1,7 +1,36 @@
+############################
+# ECS CLUSTER
+############################
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
 }
 
+############################
+# SECURITY GROUP
+############################
+resource "aws_security_group" "strapi" {
+  name        = "paktha-strapi-ecs-sg"
+  description = "Allow Strapi traffic"
+  vpc_id      = data.aws_vpc.default.id
+
+  ingress {
+    from_port   = 1337
+    to_port     = 1337
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+############################
+# TASK DEFINITION
+############################
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "paktha-strapi-task"
   requires_compatibilities = ["FARGATE"]
@@ -9,15 +38,19 @@ resource "aws_ecs_task_definition" "strapi" {
   cpu                      = "512"
   memory                   = "1024"
 
-  execution_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"
-
   container_definitions = jsonencode([
     {
       name  = "strapi"
-      image = var.image_uri
+      image = var.ecr_image_uri
+      essential = true
+
       portMappings = [
-        { containerPort = 1337 }
+        {
+          containerPort = 1337
+          hostPort      = 1337
+        }
       ]
+
       environment = [
         { name = "NODE_ENV", value = "production" },
         { name = "APP_KEYS", value = var.app_keys },
@@ -28,6 +61,9 @@ resource "aws_ecs_task_definition" "strapi" {
   ])
 }
 
+############################
+# ECS SERVICE
+############################
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
   cluster         = aws_ecs_cluster.strapi.id
@@ -37,7 +73,7 @@ resource "aws_ecs_service" "strapi" {
 
   network_configuration {
     subnets         = data.aws_subnets.default.ids
-    assign_public_ip = true
     security_groups = [aws_security_group.strapi.id]
+    assign_public_ip = true
   }
 }
