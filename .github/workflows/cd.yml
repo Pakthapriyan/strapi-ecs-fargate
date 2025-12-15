@@ -3,8 +3,8 @@ name: CD - ECS Fargate Deploy
 on:
   workflow_dispatch:
     inputs:
-      ecr_image_uri:
-        description: "ECR Image URI (with tag)"
+      image_uri:
+        description: "ECR Image URI"
         required: true
 
 jobs:
@@ -12,27 +12,34 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Setup Terraform
-      uses: hashicorp/setup-terraform@v3
+      - uses: hashicorp/setup-terraform@v3
 
-    - name: Terraform Init
-      working-directory: terraform
-      run: terraform init
-      env:
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        AWS_REGION: eu-north-1
+      - name: Verify AWS access
+        run: aws sts get-caller-identity
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-north-1
 
-    - name: Terraform Apply (ECS Fargate Deploy)
-      working-directory: terraform
-      run: |
-        terraform apply -auto-approve \
-          -var="ecr_image_uri=${{ github.event.inputs.ecr_image_uri }}" \
-          -var="aws_access_key=${{ secrets.AWS_ACCESS_KEY_ID }}" \
-          -var="aws_secret_access_key=${{ secrets.AWS_SECRET_ACCESS_KEY }}" \
-          -var="app_keys=${{ secrets.APP_KEYS }}" \
-          -var="api_token_salt=${{ secrets.API_TOKEN_SALT }}" \
-          -var="admin_jwt_secret=${{ secrets.ADMIN_JWT_SECRET }}"
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-north-1
+
+      - name: Terraform Apply (Deploy new image)
+        working-directory: terraform
+        run: |
+          terraform apply -auto-approve \
+            -var="image_uri=${{ github.event.inputs.image_uri }}" \
+            -var="app_keys=${{ secrets.APP_KEYS }}" \
+            -var="api_token_salt=${{ secrets.API_TOKEN_SALT }}" \
+            -var="admin_jwt_secret=${{ secrets.ADMIN_JWT_SECRET }}"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: eu-north-1
