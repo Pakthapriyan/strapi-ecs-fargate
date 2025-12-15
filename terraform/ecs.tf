@@ -80,6 +80,7 @@ resource "aws_ecs_service" "strapi" {
   task_definition = aws_ecs_task_definition.strapi.arn
   desired_count   = 1
   launch_type     = "FARGATE"
+  wait_for_steady_state = false
 
   network_configuration {
     subnets         = data.aws_subnets.default.ids
