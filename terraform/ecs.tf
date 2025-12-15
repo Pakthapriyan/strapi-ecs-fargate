@@ -32,9 +32,7 @@ resource "aws_ecs_cluster" "this" {
   name = "paktha-strapi-cluster"
 }
 
-resource "aws_cloudwatch_log_group" "strapi" {
-  name = "/ecs/paktha-strapi"
-}
+
 
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "paktha-strapi-task"
