@@ -4,23 +4,19 @@ resource "aws_ecs_cluster" "strapi" {
 
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "paktha-strapi-task"
-  network_mode             = "awsvpc"
   requires_compatibilities = ["FARGATE"]
+  network_mode             = "awsvpc"
   cpu                      = "512"
   memory                   = "1024"
 
-  execution_role_arn = null
-  task_role_arn      = null
+  execution_role_arn = "arn:aws:iam::${data.aws_caller_identity.current.account_id}:role/ecsTaskExecutionRole"
 
   container_definitions = jsonencode([
     {
       name  = "strapi"
-      image = var.ecr_image
+      image = var.image_uri
       portMappings = [
-        {
-          containerPort = 1337
-          hostPort      = 1337
-        }
+        { containerPort = 1337 }
       ]
       environment = [
         { name = "NODE_ENV", value = "production" },
