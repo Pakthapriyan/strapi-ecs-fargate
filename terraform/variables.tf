@@ -2,14 +2,6 @@ variable "aws_region" {
   default = "eu-north-1"
 }
 
-variable "aws_access_key" {
-  sensitive = true
-}
-
-variable "aws_secret_access_key" {
-  sensitive = true
-}
-
 variable "ecr_image_uri" {
   description = "ECR image URI with tag"
 }
