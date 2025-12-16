@@ -60,6 +60,10 @@ data "aws_iam_role" "ecs_task_role" {
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
 }
+resource "aws_cloudwatch_log_group" "strapi" {
+  name              = "/ecs/paktha-strapi"
+  retention_in_days = 7
+}
 
 # -------------------------
 # ECS TASK DEFINITION
@@ -94,9 +98,19 @@ resource "aws_ecs_task_definition" "strapi" {
         { name = "API_TOKEN_SALT", value = var.api_token_salt },
         { name = "ADMIN_JWT_SECRET", value = var.admin_jwt_secret }
       ]
+
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = aws_cloudwatch_log_group.strapi.name
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "ecs"
+        }
+      }
     }
   ])
 }
+
 
 # -------------------------
 # ECS SERVICE
