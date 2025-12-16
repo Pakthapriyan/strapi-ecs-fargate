@@ -1,6 +1,6 @@
-
+# -------------------------
 # NETWORK (DEFAULT VPC)
-
+# -------------------------
 
 data "aws_vpc" "default" {
   default = true
@@ -13,18 +13,37 @@ data "aws_subnets" "default" {
   }
 }
 
+# -------------------------
+# SECURITY GROUP (RECREATE)
+# -------------------------
 
-# EXISTING SECURITY GROUP
+resource "aws_security_group" "strapi" {
+  name        = "paktha-strapi-sg"
+  description = "Allow Strapi access"
+  vpc_id      = data.aws_vpc.default.id
 
+  ingress {
+    from_port   = 1337
+    to_port     = 1337
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 
-data "aws_security_group" "strapi" {
-  name   = "paktha-strapi-sg"
-  vpc_id = data.aws_vpc.default.id
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "paktha-strapi-sg"
+  }
 }
 
-
+# -------------------------
 # EXISTING IAM ROLES
-
+# -------------------------
 
 data "aws_iam_role" "ecs_execution_role" {
   name = "paktha-ecs-execution-role"
@@ -34,16 +53,17 @@ data "aws_iam_role" "ecs_task_role" {
   name = "paktha-ecs-task-role"
 }
 
+# -------------------------
 # ECS CLUSTER
-
+# -------------------------
 
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
 }
 
-
+# -------------------------
 # ECS TASK DEFINITION
-
+# -------------------------
 
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "paktha-strapi-task"
@@ -57,9 +77,8 @@ resource "aws_ecs_task_definition" "strapi" {
 
   container_definitions = jsonencode([
     {
-      name  = "strapi"
-      image = var.ecr_image_uri
-
+      name      = "strapi"
+      image     = var.ecr_image_uri
       essential = true
 
       portMappings = [
@@ -79,8 +98,9 @@ resource "aws_ecs_task_definition" "strapi" {
   ])
 }
 
-
+# -------------------------
 # ECS SERVICE
+# -------------------------
 
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
@@ -91,7 +111,8 @@ resource "aws_ecs_service" "strapi" {
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids
-    security_groups  = [data.aws_security_group.strapi.id]
+    security_groups  = [aws_security_group.strapi.id]
     assign_public_ip = true
   }
 }
+
