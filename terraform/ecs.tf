@@ -17,28 +17,9 @@ data "aws_subnets" "default" {
 # SECURITY GROUP (RECREATE)
 # -------------------------
 
-resource "aws_security_group" "strapi" {
-  name        = "paktha-strapi-sg"
-  description = "Allow Strapi access"
-  vpc_id      = data.aws_vpc.default.id
-
-  ingress {
-    from_port   = 1337
-    to_port     = 1337
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
-    Name = "paktha-strapi-sg"
-  }
+data "aws_security_group" "strapi" {
+  name   = "paktha-strapi-sg"
+  vpc_id = data.aws_vpc.default.id
 }
 
 # -------------------------
@@ -60,10 +41,10 @@ data "aws_iam_role" "ecs_task_role" {
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
 }
-resource "aws_cloudwatch_log_group" "strapi" {
-  name              = "/ecs/paktha-strapi"
-  retention_in_days = 7
+data "aws_cloudwatch_log_group" "strapi" {
+  name = "/ecs/paktha-strapi"
 }
+
 
 # -------------------------
 # ECS TASK DEFINITION
