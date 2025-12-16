@@ -1,5 +1,5 @@
 # -------------------------
-# NETWORK (DEFAULT VPC)
+# DEFAULT VPC & SUBNETS
 # -------------------------
 
 data "aws_vpc" "default" {
@@ -14,7 +14,7 @@ data "aws_subnets" "default" {
 }
 
 # -------------------------
-# SECURITY GROUP (RECREATE)
+# EXISTING SECURITY GROUP
 # -------------------------
 
 data "aws_security_group" "strapi" {
@@ -35,16 +35,20 @@ data "aws_iam_role" "ecs_task_role" {
 }
 
 # -------------------------
+# EXISTING CLOUDWATCH LOG GROUP
+# -------------------------
+
+data "aws_cloudwatch_log_group" "strapi" {
+  name = "/ecs/paktha-strapi"
+}
+
+# -------------------------
 # ECS CLUSTER
 # -------------------------
 
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
 }
-data "aws_cloudwatch_log_group" "strapi" {
-  name = "/ecs/paktha-strapi"
-}
-
 
 # -------------------------
 # ECS TASK DEFINITION
@@ -83,7 +87,7 @@ resource "aws_ecs_task_definition" "strapi" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = aws_cloudwatch_log_group.strapi.name
+          awslogs-group         = data.aws_cloudwatch_log_group.strapi.name
           awslogs-region        = var.aws_region
           awslogs-stream-prefix = "ecs"
         }
@@ -91,7 +95,6 @@ resource "aws_ecs_task_definition" "strapi" {
     }
   ])
 }
-
 
 # -------------------------
 # ECS SERVICE
@@ -106,8 +109,7 @@ resource "aws_ecs_service" "strapi" {
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids
-    security_groups  = [aws_security_group.strapi.id]
+    security_groups  = [data.aws_security_group.strapi.id]
     assign_public_ip = true
   }
 }
-
