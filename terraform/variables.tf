@@ -25,3 +25,8 @@ variable "admin_jwt_secret" {
   type        = string
   default     = "dummy_admin"
 }
+variable "jwt_secret" {
+  description = "JWT secret for users-permissions plugin"
+  type        = string
+  default     = "dummy_jwt_secret_change_me"
+}
