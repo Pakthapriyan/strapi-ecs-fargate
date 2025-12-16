@@ -78,11 +78,15 @@ resource "aws_ecs_task_definition" "strapi" {
       ]
 
       environment = [
-        { name = "NODE_ENV", value = "production" },
-        { name = "APP_KEYS", value = var.app_keys },
-        { name = "API_TOKEN_SALT", value = var.api_token_salt },
-        { name = "ADMIN_JWT_SECRET", value = var.admin_jwt_secret }
+      { name = "NODE_ENV", value = "production" },
+      { name = "HOST", value = "0.0.0.0" },
+      { name = "PORT", value = "1337" },
+      { name = "APP_KEYS", value = var.app_keys },
+      { name = "API_TOKEN_SALT", value = var.api_token_salt },
+      { name = "ADMIN_JWT_SECRET", value = var.admin_jwt_secret },
+      { name = "JWT_SECRET", value = var.jwt_secret }
       ]
+
 
       logConfiguration = {
         logDriver = "awslogs"
