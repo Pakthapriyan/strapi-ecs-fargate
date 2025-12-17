@@ -81,7 +81,7 @@ resource "aws_ecs_task_definition" "strapi" {
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = aws_cloudwatch_log_group.strapi.name
+          awslogs-group         = data.aws_cloudwatch_log_group.strapi.name
           awslogs-region        = var.aws_region
           awslogs-stream-prefix = "ecs/strapi"
         }
@@ -103,7 +103,7 @@ resource "aws_ecs_service" "strapi" {
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids
-    security_groups = [data.aws_security_group.strapi.id]
+    security_groups  = [data.aws_security_group.strapi.id]
     assign_public_ip = true
   }
 }
