@@ -17,23 +17,9 @@ data "aws_subnets" "default" {
 # SECURITY GROUP
 
 
-resource "aws_security_group" "strapi" {
+data "aws_security_group" "strapi" {
   name   = "paktha-strapi-sg"
   vpc_id = data.aws_vpc.default.id
-
-  ingress {
-    from_port   = 1337
-    to_port     = 1337
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 }
 
 
@@ -117,7 +103,7 @@ resource "aws_ecs_service" "strapi" {
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids
-    security_groups  = [aws_security_group.strapi.id]
+    security_groups = [data.aws_security_group.strapi.id]
     assign_public_ip = true
   }
 }
