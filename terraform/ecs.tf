@@ -1,6 +1,6 @@
-# -------------------------
-# DEFAULT VPC & SUBNETS
-# -------------------------
+
+#  VPC & SUBNETS
+
 
 data "aws_vpc" "default" {
   default = true
@@ -13,18 +13,32 @@ data "aws_subnets" "default" {
   }
 }
 
-# -------------------------
-# EXISTING SECURITY GROUP
-# -------------------------
 
-data "aws_security_group" "strapi" {
+# SECURITY GROUP
+
+
+resource "aws_security_group" "strapi" {
   name   = "paktha-strapi-sg"
   vpc_id = data.aws_vpc.default.id
+
+  ingress {
+    from_port   = 1337
+    to_port     = 1337
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
-# -------------------------
+
 # EXISTING IAM ROLES
-# -------------------------
+
 
 data "aws_iam_role" "ecs_execution_role" {
   name = "paktha-ecs-execution-role"
@@ -34,25 +48,16 @@ data "aws_iam_role" "ecs_task_role" {
   name = "paktha-ecs-task-role"
 }
 
-# -------------------------
-# EXISTING CLOUDWATCH LOG GROUP
-# -------------------------
 
-data "aws_cloudwatch_log_group" "strapi" {
-  name = "/ecs/paktha-strapi"
-}
-
-# -------------------------
 # ECS CLUSTER
-# -------------------------
+
 
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
 }
 
-# -------------------------
+
 # ECS TASK DEFINITION
-# -------------------------
 
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "paktha-strapi-task"
@@ -78,31 +83,30 @@ resource "aws_ecs_task_definition" "strapi" {
       ]
 
       environment = [
-      { name = "NODE_ENV", value = "production" },
-      { name = "HOST", value = "0.0.0.0" },
-      { name = "PORT", value = "1337" },
-      { name = "APP_KEYS", value = var.app_keys },
-      { name = "API_TOKEN_SALT", value = var.api_token_salt },
-      { name = "ADMIN_JWT_SECRET", value = var.admin_jwt_secret },
-      { name = "JWT_SECRET", value = var.jwt_secret }
+        { name = "NODE_ENV", value = "production" },
+        { name = "HOST", value = "0.0.0.0" },
+        { name = "PORT", value = "1337" },
+        { name = "APP_KEYS", value = var.app_keys },
+        { name = "API_TOKEN_SALT", value = var.api_token_salt },
+        { name = "ADMIN_JWT_SECRET", value = var.admin_jwt_secret },
+        { name = "JWT_SECRET", value = var.jwt_secret }
       ]
-
 
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = data.aws_cloudwatch_log_group.strapi.name
+          awslogs-group         = aws_cloudwatch_log_group.strapi.name
           awslogs-region        = var.aws_region
-          awslogs-stream-prefix = "ecs"
+          awslogs-stream-prefix = "ecs/strapi"
         }
       }
     }
   ])
 }
 
-# -------------------------
+
 # ECS SERVICE
-# -------------------------
+
 
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
@@ -113,7 +117,7 @@ resource "aws_ecs_service" "strapi" {
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids
-    security_groups  = [data.aws_security_group.strapi.id]
+    security_groups  = [aws_security_group.strapi.id]
     assign_public_ip = true
   }
 }
