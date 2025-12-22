@@ -62,7 +62,9 @@ resource "aws_security_group_rule" "alb_to_ecs" {
   to_port                  = 1337
   protocol                 = "tcp"
   security_group_id         = data.aws_security_group.strapi.id
-  source_security_group_id = aws_security_group.alb.id
+  source_security_group_id = data.aws_security_group.alb.id
+}
+
 }
 
 ################################
@@ -89,7 +91,7 @@ data "aws_lb_target_group" "strapi" {
 resource "aws_lb" "strapi" {
   name               = "paktha-strapi-alb"
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb.id]
+  source_security_group_id = data.aws_security_group.alb.id
   subnets            = local.alb_subnet_ids
 }
 
@@ -100,9 +102,10 @@ resource "aws_lb_listener" "http" {
 
   default_action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.strapi.arn
+    target_group_arn = data.aws_lb_target_group.strapi.arn
   }
 }
+
 
 ################################
 # ECS CLUSTER
@@ -146,13 +149,13 @@ resource "aws_ecs_task_definition" "strapi" {
       ]
 
       logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.strapi.name
-          awslogs-region        = var.aws_region
-          awslogs-stream-prefix = "ecs/strapi"
-        }
+      logDriver = "awslogs"
+      options = {
+        awslogs-group         = data.aws_cloudwatch_log_group.strapi.name
+        awslogs-region        = var.aws_region
+        awslogs-stream-prefix = "ecs/strapi"
       }
+    }
 
       healthCheck = {
         command     = ["CMD-SHELL", "curl -f http://localhost:1337 || exit 1"]
@@ -186,10 +189,11 @@ resource "aws_ecs_service" "strapi" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.strapi.arn
-    container_name   = "strapi"
-    container_port   = 1337
-  }
+  target_group_arn = data.aws_lb_target_group.strapi.arn
+  container_name   = "strapi"
+  container_port   = 1337
+}
+
 
   depends_on = [
     aws_lb_listener.http,
