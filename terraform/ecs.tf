@@ -1,6 +1,6 @@
-
+################################
 # VPC & SUBNETS
-
+################################
 
 data "aws_vpc" "default" {
   default = true
@@ -13,36 +13,43 @@ data "aws_subnets" "default" {
   }
 }
 
-# Fetch subnet details (needed to know AZs)
+# Fetch subnet details (map)
 data "aws_subnet" "default" {
   for_each = toset(data.aws_subnets.default.ids)
   id       = each.value
 }
 
-# One subnet per AZ (ALB requirement)
+# ---- FIXED LOCALS (IMPORTANT PART) ----
 locals {
+  # Convert map -> list
+  subnet_list = values(data.aws_subnet.default)
+
+  # Unique AZs
   alb_azs = distinct([
-    for s in data.aws_subnet.default : s.availability_zone
+    for s in local.subnet_list : s.availability_zone
   ])
 
+  # One subnet per AZ (ALB requirement)
   alb_subnet_ids = [
     for az in local.alb_azs :
-    one([
-      for s in data.aws_subnet.default :
-      s.id if s.availability_zone == az
-    ])
+    local.subnet_list[
+      index(
+        [for s in local.subnet_list : s.availability_zone],
+        az
+      )
+    ].id
   ]
 }
 
+################################
 # SECURITY GROUPS
+################################
 
-# Existing ECS SG (already created earlier)
 data "aws_security_group" "strapi" {
   name   = "paktha-strapi-sg"
   vpc_id = data.aws_vpc.default.id
 }
 
-# ALB Security Group
 resource "aws_security_group" "alb" {
   name        = "paktha-strapi-alb-sg"
   description = "Allow HTTP traffic to ALB"
@@ -63,7 +70,6 @@ resource "aws_security_group" "alb" {
   }
 }
 
-# Allow ALB → ECS traffic on 1337
 resource "aws_security_group_rule" "alb_to_ecs" {
   type                     = "ingress"
   from_port                = 1337
@@ -73,11 +79,9 @@ resource "aws_security_group_rule" "alb_to_ecs" {
   source_security_group_id = aws_security_group.alb.id
 }
 
-
-
-
-
-# IAM ROLES 
+################################
+# IAM ROLES
+################################
 
 data "aws_iam_role" "ecs_execution_role" {
   name = "paktha-ecs-execution-role"
@@ -87,9 +91,9 @@ data "aws_iam_role" "ecs_task_role" {
   name = "paktha-ecs-task-role"
 }
 
-
+################################
 # ALB + TARGET GROUP
-
+################################
 
 resource "aws_lb_target_group" "strapi" {
   name        = "paktha-strapi-tg"
@@ -126,15 +130,17 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-
+################################
 # ECS CLUSTER
+################################
 
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
 }
 
+################################
 # ECS TASK DEFINITION
-
+################################
 
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "paktha-strapi-task"
@@ -185,8 +191,10 @@ resource "aws_ecs_task_definition" "strapi" {
   ])
 }
 
-
+################################
 # ECS SERVICE
+################################
+
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
   cluster         = aws_ecs_cluster.strapi.id
