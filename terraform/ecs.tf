@@ -1,6 +1,6 @@
-################################
+
 # DEFAULT VPC & SUBNETS
-################################
+
 
 data "aws_vpc" "default" {
   default = true
@@ -19,29 +19,21 @@ data "aws_subnets" "alb" {
 }
 
 
-################################
 # EXISTING SECURITY GROUP
-################################
-
 data "aws_security_group" "strapi" {
   name   = "paktha-strapi-sg"
   vpc_id = data.aws_vpc.default.id
 }
 
-################################
 # ALB SECURITY GROUP (NEW)
-################################
-
 data "aws_security_group" "alb" {
   name   = "paktha-strapi-alb-sg"
   vpc_id = data.aws_vpc.default.id
 }
 
 
-################################
-# ALB → ECS RULE
-################################
 
+# ALB → ECS RULE
 resource "aws_security_group_rule" "alb_to_ecs" {
   type                     = "ingress"
   from_port                = 1337
@@ -51,11 +43,7 @@ resource "aws_security_group_rule" "alb_to_ecs" {
   source_security_group_id = data.aws_security_group.alb.id
 }
 
-
-################################
 # EXISTING IAM ROLES
-################################
-
 data "aws_iam_role" "ecs_execution_role" {
   name = "paktha-ecs-execution-role"
 }
@@ -64,18 +52,13 @@ data "aws_iam_role" "ecs_task_role" {
   name = "paktha-ecs-task-role"
 }
 
-
-################################
 # ECS CLUSTER
-################################
-
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
 }
 
-################################
+
 # ALB + TARGET GROUP
-################################
 data "aws_lb_target_group" "strapi" {
   name = "paktha-strapi-tg"
 }
@@ -99,11 +82,7 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-
-################################
-# ECS TASK DEFINITION (UNCHANGED LOGIC)
-################################
-
+# ECS TASK DEFINITION 
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "paktha-strapi-task"
   requires_compatibilities = ["FARGATE"]
@@ -150,10 +129,7 @@ resource "aws_ecs_task_definition" "strapi" {
 }
 
 
-################################
-# ECS SERVICE (HEALTH FIX ADDED)
-################################
-
+# ECS SERVICE 
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
   cluster         = aws_ecs_cluster.strapi.id
