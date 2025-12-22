@@ -71,13 +71,6 @@ data "aws_iam_role" "ecs_task_role" {
   name = "paktha-ecs-task-role"
 }
 
-################################
-# EXISTING CLOUDWATCH LOG GROUP
-################################
-
-data "aws_cloudwatch_log_group" "strapi" {
-  name = "/ecs/paktha-strapi"
-}
 
 ################################
 # ECS CLUSTER
