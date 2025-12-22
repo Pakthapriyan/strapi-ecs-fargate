@@ -144,14 +144,18 @@ resource "aws_ecs_task_definition" "strapi" {
         { name = "JWT_SECRET", value = var.jwt_secret }
       ]
 
-      load_balancer {
-        target_group_arn = data.aws_lb_target_group.strapi.arn
-        container_name   = "strapi"
-        container_port   = 1337
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = "/ecs/strapi"
+          awslogs-region        = var.aws_region
+          awslogs-stream-prefix = "ecs"
+        }
       }
     }
   ])
 }
+
 
 ################################
 # ECS SERVICE (HEALTH FIX ADDED)
