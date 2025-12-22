@@ -71,6 +71,77 @@ resource "aws_cloudwatch_dashboard" "strapi" {
             ]
           ]
         }
+      },
+      resource "aws_cloudwatch_dashboard" "strapi" {
+  dashboard_name = "paktha-strapi-dashboard"
+
+  dashboard_body = jsonencode({
+    widgets = [
+      {
+        type   = "metric"
+        x      = 0
+        y      = 6
+        width  = 12
+        height = 6
+
+        properties = {
+          title  = "ECS Running vs Desired Tasks"
+          region = "ap-south-1"
+          period = 60
+          stat   = "Average"
+
+          metrics = [
+            [
+              "ECS/ContainerInsights",
+              "RunningTaskCount",
+              "ClusterName",
+              "paktha-strapi-cluster",
+              "ServiceName",
+              "paktha-strapi-service"
+            ],
+            [
+              ".",
+              "DesiredTaskCount",
+              ".",
+              ".",
+              ".",
+              "."
+            ]
+          ]
+        }
+      },
+      {
+        type   = "metric"
+        x      = 0
+        y      = 0
+        width  = 12
+        height = 6
+
+        properties = {
+          title  = "ECS Network In / Out (Bytes)"
+          region = "ap-south-1"
+          period = 60
+          stat   = "Sum"
+
+          metrics = [
+            [
+              "ECS/ContainerInsights",
+              "NetworkRxBytes",
+              "ClusterName",
+              "paktha-strapi-cluster",
+              "ServiceName",
+              "paktha-strapi-service"
+            ],
+            [
+              ".",
+              "NetworkTxBytes",
+              ".",
+              ".",
+              ".",
+              "."
+            ]
+          ]
+        }
       }
     ]
   })
