@@ -164,13 +164,13 @@ resource "aws_ecs_service" "strapi" {
   health_check_grace_period_seconds = 120
 
   network_configuration {
-    subnets          = data.aws_subnets.default.ids
+    subnets          = data.aws_subnets.alb.ids
     security_groups  = [data.aws_security_group.strapi.id]
     assign_public_ip = true
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.strapi.arn
+    target_group_arn = data.aws_lb_target_group.strapi.arn
     container_name   = "strapi"
     container_port   = 1337
   }
