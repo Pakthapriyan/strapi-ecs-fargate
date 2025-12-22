@@ -40,6 +40,23 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+resource "aws_lb_target_group" "strapi" {
+  name        = "paktha-strapi-tg"
+  port        = 1337
+  protocol    = "HTTP"
+  vpc_id      = data.aws_vpc.default.id
+  target_type = "ip"
+
+  health_check {
+    path                = "/"
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    timeout             = 5
+    interval            = 30
+    matcher             = "200-399"
+  }
+}
+
 
 
 # EXISTING IAM ROLES
@@ -59,6 +76,7 @@ resource "aws_lb" "strapi" {
   security_groups    = [aws_security_group.alb.id]
   subnets            = data.aws_subnets.default.ids
 }
+
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.strapi.arn
   port              = 80
