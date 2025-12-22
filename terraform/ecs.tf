@@ -74,13 +74,7 @@ resource "aws_security_group_rule" "alb_to_ecs" {
 }
 
 
-# CLOUDWATCH LOG GROUP
 
-
-resource "aws_cloudwatch_log_group" "strapi" {
-  name              = "/ecs/strapi"
-  retention_in_days = 14
-}
 
 
 # IAM ROLES 
