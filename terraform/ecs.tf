@@ -65,7 +65,7 @@ resource "aws_security_group_rule" "alb_to_ecs" {
   source_security_group_id = data.aws_security_group.alb.id
 }
 
-}
+
 
 ################################
 # IAM ROLES
