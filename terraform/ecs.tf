@@ -1,5 +1,5 @@
 
-#  VPC & SUBNETS
+# VPC & SUBNETS
 
 
 data "aws_vpc" "default" {
@@ -13,14 +13,36 @@ data "aws_subnets" "default" {
   }
 }
 
+# Fetch subnet details (needed to know AZs)
+data "aws_subnet" "default" {
+  for_each = toset(data.aws_subnets.default.ids)
+  id       = each.value
+}
 
-# SECURITY GROUP
+# One subnet per AZ (ALB requirement)
+locals {
+  alb_azs = distinct([
+    for s in data.aws_subnet.default : s.availability_zone
+  ])
 
+  alb_subnet_ids = [
+    for az in local.alb_azs :
+    one([
+      for s in data.aws_subnet.default :
+      s.id if s.availability_zone == az
+    ])
+  ]
+}
 
+# SECURITY GROUPS
+
+# Existing ECS SG (already created earlier)
 data "aws_security_group" "strapi" {
   name   = "paktha-strapi-sg"
   vpc_id = data.aws_vpc.default.id
 }
+
+# ALB Security Group
 resource "aws_security_group" "alb" {
   name        = "paktha-strapi-alb-sg"
   description = "Allow HTTP traffic to ALB"
@@ -40,6 +62,41 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+# Allow ALB → ECS traffic on 1337
+resource "aws_security_group_rule" "alb_to_ecs" {
+  type                     = "ingress"
+  from_port                = 1337
+  to_port                  = 1337
+  protocol                 = "tcp"
+  security_group_id         = data.aws_security_group.strapi.id
+  source_security_group_id = aws_security_group.alb.id
+}
+
+
+# CLOUDWATCH LOG GROUP
+
+
+resource "aws_cloudwatch_log_group" "strapi" {
+  name              = "/ecs/strapi"
+  retention_in_days = 14
+}
+
+
+# IAM ROLES 
+
+data "aws_iam_role" "ecs_execution_role" {
+  name = "paktha-ecs-execution-role"
+}
+
+data "aws_iam_role" "ecs_task_role" {
+  name = "paktha-ecs-task-role"
+}
+
+
+# ALB + TARGET GROUP
+
+
 resource "aws_lb_target_group" "strapi" {
   name        = "paktha-strapi-tg"
   port        = 1337
@@ -49,32 +106,19 @@ resource "aws_lb_target_group" "strapi" {
 
   health_check {
     path                = "/"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
     healthy_threshold   = 2
     unhealthy_threshold = 3
-    timeout             = 5
-    interval            = 30
-    matcher             = "200-399"
   }
 }
 
-
-
-# EXISTING IAM ROLES
-
-
-data "aws_iam_role" "ecs_execution_role" {
-  name = "paktha-ecs-execution-role"
-}
-
-data "aws_iam_role" "ecs_task_role" {
-  name = "paktha-ecs-task-role"
-}
-#ALB
 resource "aws_lb" "strapi" {
   name               = "paktha-strapi-alb"
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb.id]
-  subnets            = data.aws_subnets.default.ids
+  subnets            = local.alb_subnet_ids
 }
 
 resource "aws_lb_listener" "http" {
@@ -88,15 +132,15 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# ECS CLUSTER
 
+# ECS CLUSTER
 
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
 }
 
-
 # ECS TASK DEFINITION
+
 
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "paktha-strapi-task"
@@ -148,7 +192,6 @@ resource "aws_ecs_task_definition" "strapi" {
 }
 
 
-
 # ECS SERVICE
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
@@ -172,7 +215,8 @@ resource "aws_ecs_service" "strapi" {
     container_port   = 1337
   }
 
-  depends_on = [aws_lb_listener.http]
+  depends_on = [
+    aws_lb_listener.http,
+    aws_security_group_rule.alb_to_ecs
+  ]
 }
-
-
