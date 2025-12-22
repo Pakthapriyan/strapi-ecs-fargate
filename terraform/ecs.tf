@@ -179,9 +179,10 @@ resource "aws_ecs_service" "strapi" {
   task_definition = aws_ecs_task_definition.strapi.arn
   desired_count   = 1
   launch_type     = "FARGATE"
-
+  health_check_grace_period_seconds = 120
   deployment_minimum_healthy_percent = 50
   deployment_maximum_percent         = 200
+  
 
   network_configuration {
     subnets          = data.aws_subnets.default.ids
