@@ -1,7 +1,7 @@
 variable "aws_region" {
-  description = "AWS region"
-  default     = "eu-north-1"
+  default = "ap-south-1"
 }
+
 
 variable "ecr_image_uri" {
   description = "ECR image URI with tag"
