@@ -71,24 +71,29 @@ resource "aws_ecs_task_definition" "strapi" {
       environment = [
         { name = "NODE_ENV", value = "production" },
         { name = "HOST", value = "0.0.0.0" },
-        { name = "PORT", value = "1337" },
-        { name = "APP_KEYS", value = var.app_keys },
-        { name = "API_TOKEN_SALT", value = var.api_token_salt },
-        { name = "ADMIN_JWT_SECRET", value = var.admin_jwt_secret },
-        { name = "JWT_SECRET", value = var.jwt_secret }
+        { name = "PORT", value = "1337" }
       ]
 
       logConfiguration = {
         logDriver = "awslogs"
         options = {
-          awslogs-group         = data.aws_cloudwatch_log_group.strapi.name
+          awslogs-group         = aws_cloudwatch_log_group.strapi.name
           awslogs-region        = var.aws_region
           awslogs-stream-prefix = "ecs/strapi"
         }
       }
+
+      healthCheck = {
+        command     = ["CMD-SHELL", "curl -f http://localhost:1337 || exit 1"]
+        interval    = 30
+        timeout     = 5
+        retries     = 3
+        startPeriod = 60
+      }
     }
   ])
 }
+
 
 
 # ECS SERVICE
@@ -101,9 +106,13 @@ resource "aws_ecs_service" "strapi" {
   desired_count   = 1
   launch_type     = "FARGATE"
 
+  deployment_minimum_healthy_percent = 50
+  deployment_maximum_percent         = 200
+
   network_configuration {
     subnets          = data.aws_subnets.default.ids
     security_groups  = [data.aws_security_group.strapi.id]
     assign_public_ip = true
   }
 }
+
