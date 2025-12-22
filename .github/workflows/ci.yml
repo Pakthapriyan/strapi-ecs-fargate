@@ -32,10 +32,10 @@ jobs:
 
       - name: Build & Push Docker Image
         run: |
-          IMAGE_URI=${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.${{ secrets.AWS_REGION }}.amazonaws.com/${{ secrets.ECR_REPOSITORY }}
-
+          IMAGE_URI=301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs
+      
           docker build -t $IMAGE_URI:${{ github.sha }} app
           docker tag $IMAGE_URI:${{ github.sha }} $IMAGE_URI:latest
-
+      
           docker push $IMAGE_URI:${{ github.sha }}
           docker push $IMAGE_URI:latest
