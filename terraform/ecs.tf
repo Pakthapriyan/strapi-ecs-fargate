@@ -91,9 +91,10 @@ data "aws_lb_target_group" "strapi" {
 resource "aws_lb" "strapi" {
   name               = "paktha-strapi-alb"
   load_balancer_type = "application"
-  source_security_group_id = data.aws_security_group.alb.id
+  security_groups    = [data.aws_security_group.alb.id]
   subnets            = local.alb_subnet_ids
 }
+
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.strapi.arn
