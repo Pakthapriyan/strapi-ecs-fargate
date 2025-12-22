@@ -6,12 +6,18 @@ data "aws_vpc" "default" {
   default = true
 }
 
-data "aws_subnets" "default" {
+data "aws_subnets" "alb" {
   filter {
     name   = "vpc-id"
     values = [data.aws_vpc.default.id]
   }
+
+  filter {
+    name   = "default-for-az"
+    values = ["true"]
+  }
 }
+
 
 ################################
 # EXISTING SECURITY GROUP
@@ -70,29 +76,15 @@ resource "aws_ecs_cluster" "strapi" {
 ################################
 # ALB + TARGET GROUP
 ################################
-
-resource "aws_lb_target_group" "strapi" {
-  name        = "paktha-strapi-tg"
-  port        = 1337
-  protocol    = "HTTP"
-  vpc_id      = data.aws_vpc.default.id
-  target_type = "ip"
-
-  health_check {
-    path                = "/"
-    matcher             = "200-399"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
-  }
+data "aws_lb_target_group" "strapi" {
+  name = "paktha-strapi-tg"
 }
 
 resource "aws_lb" "strapi" {
   name               = "paktha-strapi-alb"
   load_balancer_type = "application"
   security_groups    = [data.aws_security_group.alb.id]
-  subnets            = data.aws_subnets.default.ids
+  subnets            = data.aws_subnets.alb.ids
 }
 
 
