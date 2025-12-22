@@ -50,25 +50,11 @@ data "aws_security_group" "strapi" {
   vpc_id = data.aws_vpc.default.id
 }
 
-resource "aws_security_group" "alb" {
-  name        = "paktha-strapi-alb-sg"
-  description = "Allow HTTP traffic to ALB"
-  vpc_id      = data.aws_vpc.default.id
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+data "aws_security_group" "alb" {
+  name   = "paktha-strapi-alb-sg"
+  vpc_id = data.aws_vpc.default.id
 }
+
 
 resource "aws_security_group_rule" "alb_to_ecs" {
   type                     = "ingress"
@@ -95,22 +81,10 @@ data "aws_iam_role" "ecs_task_role" {
 # ALB + TARGET GROUP
 ################################
 
-resource "aws_lb_target_group" "strapi" {
-  name        = "paktha-strapi-tg"
-  port        = 1337
-  protocol    = "HTTP"
-  vpc_id      = data.aws_vpc.default.id
-  target_type = "ip"
-
-  health_check {
-    path                = "/"
-    matcher             = "200-399"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
-  }
+data "aws_lb_target_group" "strapi" {
+  name = "paktha-strapi-tg"
 }
+
 
 resource "aws_lb" "strapi" {
   name               = "paktha-strapi-alb"
