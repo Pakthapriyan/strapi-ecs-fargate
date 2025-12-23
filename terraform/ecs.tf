@@ -61,6 +61,7 @@ resource "aws_ecs_cluster" "strapi" {
     value = "enabled"
   }
 }
+
 resource "aws_ecs_cluster_capacity_providers" "strapi" {
   cluster_name = aws_ecs_cluster.strapi.name
 
@@ -74,6 +75,7 @@ resource "aws_ecs_cluster_capacity_providers" "strapi" {
     weight            = 1
   }
 }
+
 
 
 
@@ -157,6 +159,11 @@ resource "aws_ecs_service" "strapi" {
 
   capacity_provider_strategy {
     capacity_provider = "FARGATE_SPOT"
+    weight            = 2
+  }
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE"
     weight            = 1
   }
 
@@ -180,14 +187,3 @@ resource "aws_ecs_service" "strapi" {
     aws_ecs_cluster_capacity_providers.strapi
   ]
 }
-# Fallback strategy
-capacity_provider_strategy {
-  capacity_provider = "FARGATE_SPOT"
-  weight            = 2
-}
-
-capacity_provider_strategy {
-  capacity_provider = "FARGATE"
-  weight            = 1
-}
-
