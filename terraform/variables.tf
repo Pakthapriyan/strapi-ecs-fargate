@@ -19,7 +19,6 @@ variable "api_token_salt" {
   type        = string
   default     = "dummy_salt"
 }
-
 variable "admin_jwt_secret" {
   description = "Strapi admin JWT secret"
   type        = string
@@ -29,4 +28,8 @@ variable "jwt_secret" {
   description = "JWT secret for users-permissions plugin"
   type        = string
   default     = "dummy_jwt_secret_change_me"
+}
+variable "codedeploy_role_arn" {
+  description = "IAM role ARN for CodeDeploy ECS"
+  type        = string
 }
