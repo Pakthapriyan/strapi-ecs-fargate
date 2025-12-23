@@ -34,9 +34,7 @@ jobs:
       # 5️⃣ Terraform Apply (creates CodeDeploy app & DG)
       - name: Terraform Apply
         working-directory: terraform
-        run: terraform apply -auto-approve -input=false \
-          -var="ecr_image_uri=301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:latest"
-      
+        run: terraform apply -auto-approve -input=false -var="ecr_image_uri=301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:latest"
 
       # 6️⃣ Render task definition
       - name: Render task definition
