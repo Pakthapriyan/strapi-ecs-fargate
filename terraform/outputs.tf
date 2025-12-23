@@ -3,5 +3,5 @@ output "cluster_name" {
 }
 
 output "log_group" {
-  value = data.aws_cloudwatch_log_group.strapi.name
+  value = aws_cloudwatch_log_group.strapi.name
 }
