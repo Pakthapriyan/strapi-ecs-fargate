@@ -45,6 +45,7 @@ jobs:
           aws deploy create-deployment \
             --application-name paktha-strapi-codedeploy \
             --deployment-group-name paktha-strapi-dg \
-            --revision file://appspec.yaml \
+            --revision file://appspec.json \
             --region ap-south-1
+
 
