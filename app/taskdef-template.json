@@ -1,0 +1,19 @@
+{
+  "family": "paktha-strapi-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "512",
+  "memory": "1024",
+  "containerDefinitions": [
+    {
+      "name": "strapi",
+      "image": "<IMAGE_URI>",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 1337
+        }
+      ]
+    }
+  ]
+}
