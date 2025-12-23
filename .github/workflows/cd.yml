@@ -26,7 +26,7 @@ jobs:
 
       # 2️⃣ Register task definition and capture ARN
       - name: Register ECS task definition
-        id: taskdef
+        id: register
         run: |
           TASK_DEF_ARN=$(aws ecs register-task-definition \
             --cli-input-json file://taskdef.json \
@@ -38,14 +38,25 @@ jobs:
       # 3️⃣ Inject task definition ARN into AppSpec
       - name: Render AppSpec
         run: |
-          sed "s|TASK_DEFINITION_ARN|${{ env.TASK_DEF_ARN }}|g" \
-          appspec.yaml > appspec.rendered.yaml
+          sed "s|PLACEHOLDER_TASK_DEF|$TASK_DEF_ARN|g" appspec.yaml > appspec.rendered.yaml
 
-      # 4️⃣ Create CodeDeploy deployment
-      - name: Deploy via CodeDeploy
+      # 4️⃣ Create CodeDeploy revision file
+      - name: Create revision.json
+        run: |
+          cat > revision.json <<EOF
+          {
+            "revisionType": "AppSpecContent",
+            "appSpecContent": {
+              "content": "$(sed 's/"/\\"/g' appspec.rendered.yaml)"
+            }
+          }
+          EOF
+
+      # 5️⃣ Deploy using CodeDeploy
+      - name: Create CodeDeploy deployment
         run: |
           aws deploy create-deployment \
             --application-name paktha-strapi-codedeploy \
             --deployment-group-name paktha-strapi-dg \
-            --revision revisionType=AppSpecContent,appSpecContent="{\"content\":\"$(cat appspec.rendered.yaml | sed 's/\"/\\\\\"/g')\"}" \
+            --revision file://revision.json \
             --region ap-south-1
