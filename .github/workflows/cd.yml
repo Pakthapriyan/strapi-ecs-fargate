@@ -8,31 +8,38 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1️⃣ Checkout repo
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # 2️⃣ Configure AWS credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
-      - name: DEBUG task definition
-        run: |
-          echo "==== taskdef.json ===="
-          cat taskdef.json
 
+      # 3️⃣ Render task definition (FROM /app)
       - name: Render task definition
         run: |
           sed "s|<IMAGE_URI>|301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:latest|g" \
           app/taskdef-template.json > taskdef.json
 
+      # 4️⃣ DEBUG (now file EXISTS)
+      - name: DEBUG task definition
+        run: |
+          ls -la
+          echo "==== taskdef.json ===="
+          cat taskdef.json
 
+      # 5️⃣ Register ECS task definition
       - name: Register ECS task definition
         run: |
           aws ecs register-task-definition \
             --cli-input-json file://taskdef.json
 
+      # 6️⃣ Create CodeDeploy deployment (Blue/Green)
       - name: Create CodeDeploy deployment
         run: |
           aws deploy create-deployment \
