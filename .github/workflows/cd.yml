@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout repo
         uses: actions/checkout@v4
 
       - name: Configure AWS credentials
@@ -21,14 +21,18 @@ jobs:
       - name: Render task definition
         run: |
           sed "s|<IMAGE_URI>|301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:latest|g" \
-          taskdef-template.json > taskdef.json
+          app/taskdef-template.json > taskdef.json
 
-      - name: Deploy using CodeDeploy
-        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
-        with:
-          task-definition: taskdef.json
-          service: paktha-strapi-service
-          cluster: paktha-strapi-cluster
-          codedeploy-appspec: appspec.yaml
-          codedeploy-application: paktha-strapi-codedeploy
-          codedeploy-deployment-group: paktha-strapi-dg
+
+      - name: Register ECS task definition
+        run: |
+          aws ecs register-task-definition \
+            --cli-input-json file://taskdef.json
+
+      - name: Create CodeDeploy deployment
+        run: |
+          aws deploy create-deployment \
+            --application-name paktha-strapi-codedeploy \
+            --deployment-group-name paktha-strapi-dg \
+            --revision revisionType=AppSpecContent,appSpecContent="{\"content\":\"$(cat appspec.yaml | sed 's/"/\\"/g')\"}" \
+            --region ap-south-1
