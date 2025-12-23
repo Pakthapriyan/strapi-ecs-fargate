@@ -1,4 +1,3 @@
-
 # DEFAULT VPC & SUBNETS
 
 data "aws_vpc" "default" {
@@ -17,9 +16,9 @@ data "aws_subnets" "alb" {
   }
 }
 
+# SECURITY GROUPS
 
 
-# EXISTING SECURITY GROUP
 data "aws_security_group" "strapi" {
   name   = "paktha-strapi-sg"
   vpc_id = data.aws_vpc.default.id
@@ -29,7 +28,7 @@ data "aws_security_group" "alb" {
   name   = "paktha-strapi-alb-sg"
   vpc_id = data.aws_vpc.default.id
 }
-# ALB → ECS RULE
+
 resource "aws_security_group_rule" "alb_to_ecs" {
   type                     = "ingress"
   from_port                = 1337
@@ -39,7 +38,8 @@ resource "aws_security_group_rule" "alb_to_ecs" {
   source_security_group_id = data.aws_security_group.alb.id
 }
 
-# EXISTING IAM ROLES
+# IAM ROLES
+
 data "aws_iam_role" "ecs_execution_role" {
   name = "paktha-ecs-execution-role"
 }
@@ -48,35 +48,23 @@ data "aws_iam_role" "ecs_task_role" {
   name = "paktha-ecs-task-role"
 }
 
-
 # ECS CLUSTER
+
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
-
-  setting {
-    name  = "containerInsights"
-    value = "enabled"
-  }
-}
-
-resource "aws_ecs_cluster_capacity_providers" "strapi" {
-  cluster_name = aws_ecs_cluster.strapi.name
-
-  capacity_providers = [
-    "FARGATE",
-    "FARGATE_SPOT"
-  ]
-
-  default_capacity_provider_strategy {
-    capacity_provider = "FARGATE_SPOT"
-    weight            = 1
-  }
 }
 
 
+# ALB & TARGET GROUPS (BLUE / GREEN)
 
 
-# ALB + TARGET GROUP
+resource "aws_lb" "strapi" {
+  name               = "paktha-strapi-alb"
+  load_balancer_type = "application"
+  security_groups    = [data.aws_security_group.alb.id]
+  subnets            = data.aws_subnets.alb.ids
+}
+
 resource "aws_lb_target_group" "blue" {
   name        = "paktha-strapi-blue"
   port        = 1337
@@ -93,15 +81,6 @@ resource "aws_lb_target_group" "green" {
   target_type = "ip"
 }
 
-
-resource "aws_lb" "strapi" {
-  name               = "paktha-strapi-alb"
-  load_balancer_type = "application"
-  security_groups    = [data.aws_security_group.alb.id]
-  subnets            = data.aws_subnets.alb.ids
-}
-
-
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.strapi.arn
   port              = 80
@@ -115,6 +94,7 @@ resource "aws_lb_listener" "http" {
 
 
 # ECS TASK DEFINITION 
+
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "paktha-strapi-task"
   requires_compatibilities = ["FARGATE"]
@@ -136,21 +116,11 @@ resource "aws_ecs_task_definition" "strapi" {
           containerPort = 1337
         }
       ]
-
-      logConfiguration = {
-        logDriver = "awslogs"
-        options = {
-          awslogs-group         = aws_cloudwatch_log_group.strapi.name
-          awslogs-region        = var.aws_region
-          awslogs-stream-prefix = "ecs"
-        }
-      }
     }
   ])
 }
 
-
-# ECS SERVICE 
+# ECS SERVICE
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
   cluster         = aws_ecs_cluster.strapi.id
@@ -162,8 +132,8 @@ resource "aws_ecs_service" "strapi" {
   }
 
   network_configuration {
-    subnets          = data.aws_subnets.alb.ids
-    security_groups  = [data.aws_security_group.strapi.id]
+    subnets         = data.aws_subnets.alb.ids
+    security_groups = [data.aws_security_group.strapi.id]
     assign_public_ip = true
   }
 
