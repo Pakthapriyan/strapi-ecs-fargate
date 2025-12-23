@@ -91,9 +91,15 @@ resource "aws_lb_target_group" "blue" {
   target_type = "ip"
 
   health_check {
-    path    = "/admin"
-    matcher = "200-399"
-  }
+  path                = "/"
+  protocol            = "HTTP"
+  matcher             = "200-399"
+  interval            = 30
+  timeout             = 5
+  healthy_threshold   = 2
+  unhealthy_threshold = 3
+}
+
 }
 
 resource "aws_lb_target_group" "green" {
@@ -104,9 +110,14 @@ resource "aws_lb_target_group" "green" {
   target_type = "ip"
 
   health_check {
-    path    = "/admin"
-    matcher = "200-399"
-  }
+  path                = "/"
+  protocol            = "HTTP"
+  matcher             = "200-399"
+  interval            = 30
+  timeout             = 5
+  healthy_threshold   = 2
+  unhealthy_threshold = 3
+}
 }
 
 ################################
