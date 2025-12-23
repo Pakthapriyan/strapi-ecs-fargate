@@ -178,9 +178,14 @@ resource "aws_ecs_service" "strapi" {
     type = "CODE_DEPLOY"
   }
 
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE"
+    weight            = 1
+  }
+
   network_configuration {
-    subnets          = data.aws_subnets.alb.ids
-    security_groups  = [aws_security_group.ecs.id]
+    subnets         = data.aws_subnets.alb.ids
+    security_groups = [aws_security_group.ecs.id]
   }
 
   load_balancer {
@@ -191,3 +196,4 @@ resource "aws_ecs_service" "strapi" {
 
   depends_on = [aws_lb_listener.http]
 }
+
