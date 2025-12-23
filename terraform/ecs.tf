@@ -178,6 +178,9 @@ resource "aws_ecs_service" "strapi" {
   desired_count   = 1
   launch_type     = "FARGATE"
 
+  # REQUIRED ONLY FOR INITIAL CREATION
+  task_definition = aws_ecs_task_definition.strapi.arn
+
   deployment_controller {
     type = "CODE_DEPLOY"
   }
@@ -198,9 +201,12 @@ resource "aws_ecs_service" "strapi" {
     aws_lb_listener.http
   ]
 
+  # 🔐 VERY IMPORTANT — PREVENTS ALL YOUR PREVIOUS ERRORS
   lifecycle {
     ignore_changes = [
-      task_definition
+      task_definition,
+      load_balancer,
+      network_configuration
     ]
   }
 }
