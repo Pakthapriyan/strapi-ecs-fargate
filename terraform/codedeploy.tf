@@ -39,22 +39,21 @@ resource "aws_codedeploy_deployment_group" "strapi" {
   }
 
   load_balancer_info {
-    target_group_pair_info {
+  target_group_pair_info {
+    prod_traffic_route {
+      listener_arns = [aws_lb_listener.http.arn]
+    }
 
-      prod_traffic_route {
-        listener_arns = [aws_lb_listener.http.arn]
-      }
+    target_group {
+      name = aws_lb_target_group.blue.name
+    }
 
-      target_group {
-        name = aws_lb_target_group.blue.name
-      }
-
-      target_group {
-        name = aws_lb_target_group.green.name
-      }
+    target_group {
+      name = aws_lb_target_group.green.name
     }
   }
 }
+
 resource "aws_iam_role" "codedeploy" {
   name = "paktha-codedeploy-ecs-role"
 
