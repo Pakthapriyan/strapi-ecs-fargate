@@ -71,6 +71,15 @@ resource "aws_lb_target_group" "blue" {
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.default.id
   target_type = "ip"
+
+  health_check {
+    path                = "/admin"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
 }
 
 resource "aws_lb_target_group" "green" {
@@ -79,6 +88,15 @@ resource "aws_lb_target_group" "green" {
   protocol    = "HTTP"
   vpc_id      = data.aws_vpc.default.id
   target_type = "ip"
+
+  health_check {
+    path                = "/admin"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
 }
 
 resource "aws_lb_listener" "http" {
@@ -137,12 +155,11 @@ resource "aws_ecs_service" "strapi" {
     assign_public_ip = true
   }
 
-  load_balancer {
+    load_balancer {
     target_group_arn = aws_lb_target_group.blue.arn
     container_name   = "strapi"
     container_port   = 1337
   }
-
   depends_on = [
     aws_lb_listener.http,
     aws_security_group_rule.alb_to_ecs
