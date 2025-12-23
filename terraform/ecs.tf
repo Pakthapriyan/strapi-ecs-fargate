@@ -55,7 +55,26 @@ data "aws_iam_role" "ecs_task_role" {
 # ECS CLUSTER
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
 }
+resource "aws_ecs_cluster_capacity_providers" "strapi" {
+  cluster_name = aws_ecs_cluster.strapi.name
+
+  capacity_providers = [
+    "FARGATE",
+    "FARGATE_SPOT"
+  ]
+
+  default_capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+  }
+}
+
 
 
 # ALB + TARGET GROUP
@@ -135,7 +154,11 @@ resource "aws_ecs_service" "strapi" {
   cluster         = aws_ecs_cluster.strapi.id
   task_definition = aws_ecs_task_definition.strapi.arn
   desired_count   = 1
-  launch_type     = "FARGATE"
+
+  capacity_provider_strategy {
+    capacity_provider = "FARGATE_SPOT"
+    weight            = 1
+  }
 
   health_check_grace_period_seconds = 120
 
@@ -153,6 +176,18 @@ resource "aws_ecs_service" "strapi" {
 
   depends_on = [
     aws_lb_listener.http,
-    aws_security_group_rule.alb_to_ecs
+    aws_security_group_rule.alb_to_ecs,
+    aws_ecs_cluster_capacity_providers.strapi
   ]
 }
+# Fallback strategy
+capacity_provider_strategy {
+  capacity_provider = "FARGATE_SPOT"
+  weight            = 2
+}
+
+capacity_provider_strategy {
+  capacity_provider = "FARGATE"
+  weight            = 1
+}
+
