@@ -1,4 +1,4 @@
-name: CD - ECS Blue Green Deploy
+name: CD - Terraform + ECS Blue Green Deploy
 
 on:
   workflow_dispatch:
@@ -6,6 +6,10 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
 
     steps:
       - name: Checkout repo
@@ -18,15 +22,33 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      # 1️⃣ Render task definition
+      # 1️⃣ Install Terraform
+      - name: Install Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.6.6
+
+      # 2️⃣ Terraform Init
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init -input=false
+
+      # 3️⃣ Terraform Apply (PASS IMAGE URI)
+      - name: Terraform Apply
+        working-directory: terraform
+        run: |
+          terraform apply -auto-approve -input=false \
+            -var="ecr_image_uri=301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:latest"
+
+      # 4️⃣ Render task definition
       - name: Render task definition
         run: |
           sed "s|<IMAGE_URI>|301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:latest|g" \
           app/taskdef-template.json > taskdef.json
 
-      # 2️⃣ Register task definition and capture ARN
+      # 5️⃣ Register task definition & capture ARN
       - name: Register ECS task definition
-        id: register
+        id: taskdef
         run: |
           TASK_DEF_ARN=$(aws ecs register-task-definition \
             --cli-input-json file://taskdef.json \
@@ -35,12 +57,12 @@ jobs:
 
           echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
 
-      # 3️⃣ Inject task definition ARN into AppSpec
+      # 6️⃣ Inject ARN into AppSpec
       - name: Render AppSpec
         run: |
           sed "s|PLACEHOLDER_TASK_DEF|$TASK_DEF_ARN|g" appspec.yaml > appspec.rendered.yaml
 
-      # 4️⃣ Create CodeDeploy revision file
+      # 7️⃣ Create CodeDeploy revision
       - name: Create revision.json
         run: |
           cat > revision.json <<EOF
@@ -52,7 +74,7 @@ jobs:
           }
           EOF
 
-      # 5️⃣ Deploy using CodeDeploy
+      # 8️⃣ Trigger CodeDeploy Blue/Green
       - name: Create CodeDeploy deployment
         run: |
           aws deploy create-deployment \
