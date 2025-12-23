@@ -28,7 +28,7 @@ data "aws_security_group" "alb" {
   vpc_id = data.aws_vpc.default.id
 }
 
-# ECS Task Security Group (CREATED & MANAGED)
+# ECS TASK SECURITY GROUP
 resource "aws_security_group" "ecs" {
   name   = "paktha-strapi-ecs-sg"
   vpc_id = data.aws_vpc.default.id
@@ -69,7 +69,7 @@ resource "aws_ecs_cluster" "strapi" {
 }
 
 ################################
-# ALB (USES EXISTING SG)
+# ALB
 ################################
 
 resource "aws_lb" "strapi" {
@@ -91,15 +91,14 @@ resource "aws_lb_target_group" "blue" {
   target_type = "ip"
 
   health_check {
-  path                = "/"
-  protocol            = "HTTP"
-  matcher             = "200-399"
-  interval            = 30
-  timeout             = 5
-  healthy_threshold   = 2
-  unhealthy_threshold = 3
-}
-
+    path                = "/admin"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
 }
 
 resource "aws_lb_target_group" "green" {
@@ -110,14 +109,14 @@ resource "aws_lb_target_group" "green" {
   target_type = "ip"
 
   health_check {
-  path                = "/"
-  protocol            = "HTTP"
-  matcher             = "200-399"
-  interval            = 30
-  timeout             = 5
-  healthy_threshold   = 2
-  unhealthy_threshold = 3
-}
+    path                = "/admin"
+    protocol            = "HTTP"
+    matcher             = "200-399"
+    interval            = 30
+    timeout             = 5
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+  }
 }
 
 ################################
@@ -158,7 +157,13 @@ resource "aws_ecs_task_definition" "strapi" {
       portMappings = [
         {
           containerPort = 1337
+          protocol      = "tcp"
         }
+      ]
+
+      environment = [
+        { name = "HOST", value = "0.0.0.0" },
+        { name = "PORT", value = "1337" }
       ]
     }
   ])
@@ -194,6 +199,7 @@ resource "aws_ecs_service" "strapi" {
     container_port   = 1337
   }
 
+  health_check_grace_period_seconds = 120
+
   depends_on = [aws_lb_listener.http]
 }
-
