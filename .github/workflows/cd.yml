@@ -45,5 +45,6 @@ jobs:
           aws deploy create-deployment \
             --application-name paktha-strapi-codedeploy \
             --deployment-group-name paktha-strapi-dg \
-            --revision revisionType=AppSpecContent,appSpecContent="{\"content\":\"$(cat appspec.yaml | sed 's/"/\\"/g')\"}" \
+            --revision file://appspec.yaml \
             --region ap-south-1
+
