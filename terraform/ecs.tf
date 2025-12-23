@@ -202,4 +202,11 @@ resource "aws_ecs_service" "strapi" {
   health_check_grace_period_seconds = 120
 
   depends_on = [aws_lb_listener.http]
+
+  lifecycle {
+    ignore_changes = [
+      task_definition
+    ]
+  }
 }
+
