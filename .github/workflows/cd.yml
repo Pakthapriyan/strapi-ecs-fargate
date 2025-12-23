@@ -7,14 +7,12 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
 
-    defaults:
-      run:
-        shell: bash
-
     steps:
+      # 1️⃣ Checkout
       - name: Checkout repo
         uses: actions/checkout@v4
 
+      # 2️⃣ AWS Credentials
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
         with:
@@ -22,63 +20,35 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      # 1️⃣ Install Terraform
+      # 3️⃣ Install Terraform
       - name: Install Terraform
         uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: 1.6.6
 
-      # 2️⃣ Terraform Init
+      # 4️⃣ Terraform Init
       - name: Terraform Init
         working-directory: terraform
         run: terraform init -input=false
 
-      # 3️⃣ Terraform Apply (PASS IMAGE URI)
+      # 5️⃣ Terraform Apply
       - name: Terraform Apply
         working-directory: terraform
         run: |
           terraform apply -auto-approve -input=false \
             -var="ecr_image_uri=301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:latest"
 
-      # 4️⃣ Render task definition
+      # 6️⃣ Render task definition
       - name: Render task definition
         run: |
           sed "s|<IMAGE_URI>|301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:latest|g" \
           app/taskdef-template.json > taskdef.json
 
-      # 5️⃣ Register task definition & capture ARN
-      - name: Register ECS task definition
-        id: taskdef
-        run: |
-          TASK_DEF_ARN=$(aws ecs register-task-definition \
-            --cli-input-json file://taskdef.json \
-            --query 'taskDefinition.taskDefinitionArn' \
-            --output text)
-
-          echo "TASK_DEF_ARN=$TASK_DEF_ARN" >> $GITHUB_ENV
-
-      # 6️⃣ Inject ARN into AppSpec
-      - name: Render AppSpec
-        run: |
-          sed "s|PLACEHOLDER_TASK_DEF|$TASK_DEF_ARN|g" appspec.yaml > appspec.rendered.yaml
-
-      # 7️⃣ Create CodeDeploy revision
-      - name: Create revision.json
-        run: |
-          cat > revision.json <<EOF
-          {
-            "revisionType": "AppSpecContent",
-            "appSpecContent": {
-              "content": "$(sed 's/"/\\"/g' appspec.rendered.yaml)"
-            }
-          }
-          EOF
-
-      # 8️⃣ Trigger CodeDeploy Blue/Green
-      - name: Create CodeDeploy deployment
-        run: |
-          aws deploy create-deployment \
-            --application-name paktha-strapi-codedeploy \
-            --deployment-group-name paktha-strapi-dg \
-            --revision file://revision.json \
-            --region ap-south-1
+      # 7️⃣ 🚀 DEPLOY (PASTE IT HERE)
+      - name: Deploy ECS Blue/Green
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: taskdef.json
+          service: paktha-strapi-service
+          cluster: paktha-strapi-cluster
+          codedeploy-appspec: appspec.yaml
+          codedeploy-application: paktha-strapi-codedeploy
+          codedeploy-deployment-group: paktha-strapi-dg
