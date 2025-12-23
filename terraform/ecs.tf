@@ -172,7 +172,6 @@ resource "aws_ecs_task_definition" "strapi" {
 ################################
 # ECS SERVICE (CODEDEPLOY CONTROLLED)
 ################################
-
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
   cluster         = aws_ecs_cluster.strapi.id
@@ -205,6 +204,8 @@ resource "aws_ecs_service" "strapi" {
   depends_on = [aws_lb_listener.http]
 
   lifecycle {
-    ignore_changes = [task_definition]
+    create_before_destroy = true
+    ignore_changes        = [task_definition]
   }
 }
+
