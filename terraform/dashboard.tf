@@ -3,90 +3,65 @@ resource "aws_cloudwatch_dashboard" "strapi" {
 
   dashboard_body = jsonencode({
     widgets = [
+
       {
         type   = "metric"
         x      = 0
         y      = 0
         width  = 12
         height = 6
+
         properties = {
-          title  = "ECS CPU Utilization"
+          title  = "Task CPU Utilization"
           region = var.aws_region
-          stat   = "Average"
           period = 60
+          stat   = "Average"
+
           metrics = [
             [
-              "AWS/ECS",
-              "CPUUtilization",
+              "ECS/ContainerInsights",
+              "TaskCpuUtilization",
               "ClusterName", aws_ecs_cluster.strapi.name,
               "ServiceName", aws_ecs_service.strapi.name
             ]
           ]
         }
       },
+
       {
         type   = "metric"
         x      = 12
         y      = 0
         width  = 12
         height = 6
+
         properties = {
-          title  = "ECS Memory Utilization"
+          title  = "Task Memory Utilization"
           region = var.aws_region
-          stat   = "Average"
           period = 60
+          stat   = "Average"
+
           metrics = [
             [
-              "AWS/ECS",
-              "MemoryUtilization",
+              "ECS/ContainerInsights",
+              "TaskMemoryUtilization",
               "ClusterName", aws_ecs_cluster.strapi.name,
               "ServiceName", aws_ecs_service.strapi.name
             ]
           ]
         }
       },
+
       {
         type   = "metric"
         x      = 0
         y      = 6
         width  = 12
         height = 6
+
         properties = {
           title  = "Running vs Desired Tasks"
           region = var.aws_region
-          stat   = "Average"
-          period = 60
-          metrics = [
-            [
-              "AWS/ECS",
-              "RunningTaskCount",
-              "ClusterName", aws_ecs_cluster.strapi.name,
-              "ServiceName", aws_ecs_service.strapi.name
-            ],
-            [
-              "AWS/ECS",
-              "DesiredTaskCount",
-              "ClusterName", aws_ecs_cluster.strapi.name,
-              "ServiceName", aws_ecs_service.strapi.name
-            ]
-          ]
-        }
-      },
-      resource "aws_cloudwatch_dashboard" "strapi" {
-  dashboard_name = "paktha-strapi-dashboard"
-
-  dashboard_body = jsonencode({
-    widgets = [
-      {
-        type   = "metric"
-        x      = 0
-        y      = 6
-        width  = 12
-        height = 6
-
-        properties = {
-          title  = "ECS Running vs Desired Tasks"
-          region = "ap-south-1"
           period = 60
           stat   = "Average"
 
@@ -94,10 +69,8 @@ resource "aws_cloudwatch_dashboard" "strapi" {
             [
               "ECS/ContainerInsights",
               "RunningTaskCount",
-              "ClusterName",
-              "paktha-strapi-cluster",
-              "ServiceName",
-              "paktha-strapi-service"
+              "ClusterName", aws_ecs_cluster.strapi.name,
+              "ServiceName", aws_ecs_service.strapi.name
             ],
             [
               ".",
@@ -110,16 +83,17 @@ resource "aws_cloudwatch_dashboard" "strapi" {
           ]
         }
       },
+
       {
         type   = "metric"
-        x      = 0
-        y      = 0
+        x      = 12
+        y      = 6
         width  = 12
         height = 6
 
         properties = {
-          title  = "ECS Network In / Out (Bytes)"
-          region = "ap-south-1"
+          title  = "Network In / Out"
+          region = var.aws_region
           period = 60
           stat   = "Sum"
 
@@ -127,10 +101,8 @@ resource "aws_cloudwatch_dashboard" "strapi" {
             [
               "ECS/ContainerInsights",
               "NetworkRxBytes",
-              "ClusterName",
-              "paktha-strapi-cluster",
-              "ServiceName",
-              "paktha-strapi-service"
+              "ClusterName", aws_ecs_cluster.strapi.name,
+              "ServiceName", aws_ecs_service.strapi.name
             ],
             [
               ".",
@@ -143,6 +115,7 @@ resource "aws_cloudwatch_dashboard" "strapi" {
           ]
         }
       }
+
     ]
   })
 }
