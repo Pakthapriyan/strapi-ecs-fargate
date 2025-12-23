@@ -3,7 +3,7 @@ Resources:
   - TargetService:
       Type: AWS::ECS::Service
       Properties:
-        TaskDefinition: PLACEHOLDER_TASK_DEF
+        TaskDefinition: paktha-strapi-task
         LoadBalancerInfo:
           ContainerName: strapi
           ContainerPort: 1337
