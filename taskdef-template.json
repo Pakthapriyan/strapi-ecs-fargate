@@ -4,6 +4,10 @@
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "512",
   "memory": "1024",
+
+  "executionRoleArn": "arn:aws:iam::301782007642:role/paktha-ecs-execution-role",
+  "taskRoleArn": "arn:aws:iam::301782007642:role/paktha-ecs-task-role",
+
   "containerDefinitions": [
     {
       "name": "strapi",
