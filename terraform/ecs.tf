@@ -189,8 +189,9 @@ resource "aws_ecs_service" "strapi" {
   }
 
   network_configuration {
-    subnets         = data.aws_subnets.alb.ids
-    security_groups = [aws_security_group.ecs.id]
+    subnets          = data.aws_subnets.alb.ids
+    security_groups  = [aws_security_group.ecs.id]
+    assign_public_ip = true
   }
 
   load_balancer {
@@ -204,9 +205,6 @@ resource "aws_ecs_service" "strapi" {
   depends_on = [aws_lb_listener.http]
 
   lifecycle {
-    ignore_changes = [
-      task_definition
-    ]
+    ignore_changes = [task_definition]
   }
 }
-
