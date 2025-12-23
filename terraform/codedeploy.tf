@@ -42,6 +42,11 @@ resource "aws_codedeploy_deployment_group" "strapi" {
 
   deployment_config_name = "CodeDeployDefault.ECSCanary10Percent5Minutes"
 
+  deployment_style {
+    deployment_type   = "BLUE_GREEN"
+    deployment_option = "WITH_TRAFFIC_CONTROL"
+  }
+
   auto_rollback_configuration {
     enabled = true
     events  = ["DEPLOYMENT_FAILURE"]
