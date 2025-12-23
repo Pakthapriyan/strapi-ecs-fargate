@@ -1,4 +1,6 @@
+################################
 # DEFAULT VPC & SUBNETS
+################################
 
 data "aws_vpc" "default" {
   default = true
@@ -16,29 +18,53 @@ data "aws_subnets" "alb" {
   }
 }
 
+################################
 # SECURITY GROUPS
+################################
 
-
-data "aws_security_group" "strapi" {
-  name   = "paktha-strapi-sg"
-  vpc_id = data.aws_vpc.default.id
-}
-
-data "aws_security_group" "alb" {
+# ALB Security Group
+resource "aws_security_group" "alb" {
   name   = "paktha-strapi-alb-sg"
   vpc_id = data.aws_vpc.default.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
-resource "aws_security_group_rule" "alb_to_ecs" {
-  type                     = "ingress"
-  from_port                = 1337
-  to_port                  = 1337
-  protocol                 = "tcp"
-  security_group_id         = data.aws_security_group.strapi.id
-  source_security_group_id = data.aws_security_group.alb.id
+# ECS Task Security Group
+resource "aws_security_group" "ecs" {
+  name   = "paktha-strapi-ecs-sg"
+  vpc_id = data.aws_vpc.default.id
+
+  ingress {
+    from_port       = 1337
+    to_port         = 1337
+    protocol        = "tcp"
+    security_groups = [aws_security_group.alb.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
-# IAM ROLES
+################################
+# IAM ROLES (EXISTING)
+################################
 
 data "aws_iam_role" "ecs_execution_role" {
   name = "paktha-ecs-execution-role"
@@ -48,22 +74,28 @@ data "aws_iam_role" "ecs_task_role" {
   name = "paktha-ecs-task-role"
 }
 
+################################
 # ECS CLUSTER
+################################
 
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
 }
 
-
-# ALB & TARGET GROUPS (BLUE / GREEN)
-
+################################
+# ALB
+################################
 
 resource "aws_lb" "strapi" {
   name               = "paktha-strapi-alb"
   load_balancer_type = "application"
-  security_groups    = [data.aws_security_group.alb.id]
   subnets            = data.aws_subnets.alb.ids
+  security_groups    = [aws_security_group.alb.id]
 }
+
+################################
+# TARGET GROUPS (BLUE / GREEN)
+################################
 
 resource "aws_lb_target_group" "blue" {
   name        = "paktha-strapi-blue"
@@ -73,12 +105,8 @@ resource "aws_lb_target_group" "blue" {
   target_type = "ip"
 
   health_check {
-    path                = "/admin"
-    matcher             = "200-399"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
+    path    = "/admin"
+    matcher = "200-399"
   }
 }
 
@@ -90,14 +118,14 @@ resource "aws_lb_target_group" "green" {
   target_type = "ip"
 
   health_check {
-    path                = "/admin"
-    matcher             = "200-399"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
+    path    = "/admin"
+    matcher = "200-399"
   }
 }
+
+################################
+# ALB LISTENER (POINT TO BLUE)
+################################
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.strapi.arn
@@ -110,8 +138,9 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-
-# ECS TASK DEFINITION 
+################################
+# ECS TASK DEFINITION
+################################
 
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "paktha-strapi-task"
@@ -138,7 +167,10 @@ resource "aws_ecs_task_definition" "strapi" {
   ])
 }
 
-# ECS SERVICE
+################################
+# ECS SERVICE (CODEDEPLOY CONTROLLED)
+################################
+
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
   cluster         = aws_ecs_cluster.strapi.id
@@ -150,18 +182,16 @@ resource "aws_ecs_service" "strapi" {
   }
 
   network_configuration {
-    subnets         = data.aws_subnets.alb.ids
-    security_groups = [data.aws_security_group.strapi.id]
+    subnets          = data.aws_subnets.alb.ids
+    security_groups  = [aws_security_group.ecs.id]
     assign_public_ip = true
   }
 
-    load_balancer {
+  load_balancer {
     target_group_arn = aws_lb_target_group.blue.arn
     container_name   = "strapi"
     container_port   = 1337
   }
-  depends_on = [
-    aws_lb_listener.http,
-    aws_security_group_rule.alb_to_ecs
-  ]
+
+  depends_on = [aws_lb_listener.http]
 }
