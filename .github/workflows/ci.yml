@@ -17,25 +17,30 @@ jobs:
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ${{ secrets.AWS_REGION }}
+          aws-region: ap-south-1
 
       - name: Login to Amazon ECR
-        run: |
-          aws ecr get-login-password --region ap-south-1 \
-          | docker login --username AWS \
-            --password-stdin 301782007642.dkr.ecr.ap-south-1.amazonaws.com
-        env:
-          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: ap-south-1
-
+        uses: aws-actions/amazon-ecr-login@v2
 
       - name: Build & Push Docker Image
         run: |
           IMAGE_URI=301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs
-      
+
           docker build -t $IMAGE_URI:${{ github.sha }} app
           docker tag $IMAGE_URI:${{ github.sha }} $IMAGE_URI:latest
-      
+
           docker push $IMAGE_URI:${{ github.sha }}
           docker push $IMAGE_URI:latest
+
+      - name: Render task definition
+        run: |
+          sed "s|<IMAGE_URI>|301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:${{ github.sha }}|g" \
+          taskdef-template.json > taskdef.json
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ecs-artifacts
+          path: |
+            taskdef.json
+            appspec.yaml
