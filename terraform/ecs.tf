@@ -22,27 +22,13 @@ data "aws_subnets" "alb" {
 # SECURITY GROUPS
 ################################
 
-# ALB Security Group
-resource "aws_security_group" "alb" {
+# EXISTING ALB SECURITY GROUP (DO NOT CREATE)
+data "aws_security_group" "alb" {
   name   = "paktha-strapi-alb-sg"
   vpc_id = data.aws_vpc.default.id
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
 }
 
-# ECS Task Security Group
+# ECS Task Security Group (CREATED & MANAGED)
 resource "aws_security_group" "ecs" {
   name   = "paktha-strapi-ecs-sg"
   vpc_id = data.aws_vpc.default.id
@@ -51,7 +37,7 @@ resource "aws_security_group" "ecs" {
     from_port       = 1337
     to_port         = 1337
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
+    security_groups = [data.aws_security_group.alb.id]
   }
 
   egress {
@@ -83,14 +69,14 @@ resource "aws_ecs_cluster" "strapi" {
 }
 
 ################################
-# ALB
+# ALB (USES EXISTING SG)
 ################################
 
 resource "aws_lb" "strapi" {
   name               = "paktha-strapi-alb"
   load_balancer_type = "application"
   subnets            = data.aws_subnets.alb.ids
-  security_groups    = [aws_security_group.alb.id]
+  security_groups    = [data.aws_security_group.alb.id]
 }
 
 ################################
