@@ -29,7 +29,3 @@ variable "jwt_secret" {
   type        = string
   default     = "dummy_jwt_secret_change_me"
 }
-variable "codedeploy_role_arn" {
-  description = "IAM role ARN for CodeDeploy ECS"
-  type        = string
-}
