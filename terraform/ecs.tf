@@ -175,16 +175,11 @@ resource "aws_ecs_task_definition" "strapi" {
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
   cluster         = aws_ecs_cluster.strapi.id
-  task_definition = aws_ecs_task_definition.strapi.arn
   desired_count   = 1
+  launch_type     = "FARGATE"
 
   deployment_controller {
     type = "CODE_DEPLOY"
-  }
-
-  capacity_provider_strategy {
-    capacity_provider = "FARGATE"
-    weight            = 1
   }
 
   network_configuration {
@@ -199,13 +194,14 @@ resource "aws_ecs_service" "strapi" {
     container_port   = 1337
   }
 
-  health_check_grace_period_seconds = 120
-
-  depends_on = [aws_lb_listener.http]
+  depends_on = [
+    aws_lb_listener.http
+  ]
 
   lifecycle {
-    create_before_destroy = true
-    ignore_changes        = [task_definition]
+    ignore_changes = [
+      task_definition
+    ]
   }
 }
 
