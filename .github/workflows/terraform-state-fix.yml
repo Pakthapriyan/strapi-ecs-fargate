@@ -34,5 +34,5 @@ jobs:
       - name: REMOVE STALE SECURITY GROUPS FROM STATE
         working-directory: terraform
         run: |
-          terraform state rm aws_ecs_service.strapi || true
+          terraform state rm aws_ecs_task_definition.strapi || true
 
