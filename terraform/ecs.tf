@@ -113,7 +113,7 @@ resource "aws_security_group" "ecs" {
     from_port       = 1337
     to_port         = 1337
     protocol        = "tcp"
-    security_groups = [data.aws_security_group.alb.id]  # ✅ FIX
+    security_groups = [aws_security_group.alb.id]  
   }
 
   egress {
@@ -123,6 +123,8 @@ resource "aws_security_group" "ecs" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+
+
 
 ################################
 # IAM ROLES (EXISTING)
