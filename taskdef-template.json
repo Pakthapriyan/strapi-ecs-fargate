@@ -13,12 +13,33 @@
       "name": "strapi",
       "image": "<IMAGE_URI>",
       "essential": true,
+
       "portMappings": [
         {
           "containerPort": 1337,
           "protocol": "tcp"
         }
-      ]
+      ],
+
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "HOST", "value": "0.0.0.0" },
+        { "name": "PORT", "value": "1337" },
+
+        { "name": "APP_KEYS", "value": "<APP_KEYS>" },
+        { "name": "API_TOKEN_SALT", "value": "<API_TOKEN_SALT>" },
+        { "name": "ADMIN_JWT_SECRET", "value": "<ADMIN_JWT_SECRET>" },
+        { "name": "JWT_SECRET", "value": "<JWT_SECRET>" }
+      ],
+
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/strapi",
+          "awslogs-region": "ap-south-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
     }
   ]
 }
