@@ -78,24 +78,11 @@ resource "aws_route_table_association" "public_b" {
 ################################
 # SECURITY GROUPS
 ################################
-resource "aws_security_group" "alb" {
+data "aws_security_group" "alb" {
   name   = "paktha-strapi-alb-sg"
-  vpc_id = aws_vpc.strapi.id
-
-  ingress {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
+  vpc_id = data.aws_vpc.existing.id
 }
+
 
 resource "aws_security_group" "ecs" {
   name   = "paktha-strapi-ecs-sg"
@@ -140,14 +127,17 @@ resource "aws_ecs_cluster" "strapi" {
 resource "aws_lb" "strapi" {
   name               = "paktha-strapi-alb"
   load_balancer_type = "application"
+  subnets            = data.aws_subnets.public.ids
 
-  subnets = [
-    aws_subnet.public_a.id,
-    aws_subnet.public_b.id
-  ]
 
-  security_groups = [aws_security_group.alb.id]
+  lifecycle {
+    ignore_changes = [
+      security_groups,
+      subnets
+    ]
+  }
 }
+
 
 resource "aws_lb_target_group" "blue" {
   name        = "paktha-strapi-blue"
