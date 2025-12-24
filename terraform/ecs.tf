@@ -75,33 +75,7 @@ resource "aws_route_table_association" "public_b" {
   route_table_id = aws_route_table.public.id
 }
 
-################################
-# SECURITY GROUPS
-################################
-data "aws_security_group" "alb" {
-  name   = "paktha-strapi-alb-sg"
-  vpc_id = data.aws_vpc.existing.id
-}
 
-
-resource "aws_security_group" "ecs" {
-  name   = "paktha-strapi-ecs-sg"
-  vpc_id = aws_vpc.strapi.id
-
-  ingress {
-    from_port       = 1337
-    to_port         = 1337
-    protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
 ################################
 # SECURITY GROUPS
 ################################
