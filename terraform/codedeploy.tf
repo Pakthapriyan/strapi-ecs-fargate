@@ -37,7 +37,6 @@ resource "aws_codedeploy_deployment_group" "strapi" {
   deployment_group_name = "paktha-strapi-dg"
   service_role_arn      = aws_iam_role.codedeploy.arn
 
-  # ✅ USE ECS-SAFE CONFIG (Canary is fine, but this is safest first)
   deployment_config_name = "CodeDeployDefault.ECSAllAtOnce"
 
   deployment_style {
@@ -53,17 +52,18 @@ resource "aws_codedeploy_deployment_group" "strapi" {
   load_balancer_info {
     target_group_pair_info {
 
-      # ✅ REQUIRED
       prod_traffic_route {
         listener_arns = [aws_lb_listener.http.arn]
       }
 
-      # ✅ MUST MATCH ECS SERVICE
+      test_traffic_route {
+        listener_arns = [aws_lb_listener.test.arn]
+      }
+
       target_group {
         name = aws_lb_target_group.blue.name
       }
 
-      # ✅ REQUIRED SECOND TARGET GROUP
       target_group {
         name = aws_lb_target_group.green.name
       }
@@ -86,3 +86,4 @@ resource "aws_codedeploy_deployment_group" "strapi" {
     }
   }
 }
+
