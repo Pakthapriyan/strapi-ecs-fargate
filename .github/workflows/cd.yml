@@ -1,4 +1,4 @@
-name: CD - Terraform + ECS Blue Green Deploy
+name: CD - ECS Blue Green Deploy
 
 on:
   workflow_dispatch:
@@ -20,37 +20,37 @@ jobs:
           aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
           aws-region: ap-south-1
 
-      # 3️⃣ Install Terraform
-      - name: Install Terraform
-        uses: hashicorp/setup-terraform@v3
-
-      # 4️⃣ Terraform Init
+      # 3️⃣ (OPTIONAL) Terraform infra — run ONLY if infra changes
       - name: Terraform Init
         working-directory: terraform
         run: terraform init -input=false
 
-      # 5️⃣ Terraform Apply
       - name: Terraform Apply
         working-directory: terraform
-        run: |
-          terraform apply -auto-approve -input=false \
-            -var="ecr_image_uri=301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:latest"
-      - name: Checkout repository
-        uses: actions/checkout@v4
+        run: terraform apply -auto-approve -input=false
 
-      # 6️⃣ Render task definition
+      # 4️⃣ Set IMAGE URI (CRITICAL FIX)
+      - name: Set ECR image URI
+        run: |
+          echo "ECR_IMAGE=301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:${{ github.sha }}" >> $GITHUB_ENV
+
+      # 5️⃣ Render ECS task definition
       - name: Render ECS task definition
         run: |
           cp taskdef-template.json taskdef.json
-      
+
           sed -i "s|<IMAGE_URI>|${{ env.ECR_IMAGE }}|g" taskdef.json
           sed -i "s|<APP_KEYS>|${{ secrets.APP_KEYS }}|g" taskdef.json
           sed -i "s|<API_TOKEN_SALT>|${{ secrets.API_TOKEN_SALT }}|g" taskdef.json
           sed -i "s|<ADMIN_JWT_SECRET>|${{ secrets.ADMIN_JWT_SECRET }}|g" taskdef.json
           sed -i "s|<JWT_SECRET>|${{ secrets.JWT_SECRET }}|g" taskdef.json
-      
 
-      # 7️⃣ 🚀 DEPLOY (PASTE IT HERE)
+      # 6️⃣ Debug (senior habit)
+      - name: Verify task definition
+        run: |
+          cat taskdef.json | grep image
+
+      # 7️⃣ 🚀 Deploy via CodeDeploy
       - name: Deploy to ECS using CodeDeploy
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
@@ -60,5 +60,3 @@ jobs:
           codedeploy-appspec: appspec.yaml
           codedeploy-application: paktha-strapi-codedeploy
           codedeploy-deployment-group: paktha-strapi-dg
-
-
