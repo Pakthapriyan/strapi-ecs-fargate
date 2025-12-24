@@ -155,10 +155,6 @@ resource "aws_lb_target_group" "blue" {
     path    = "/admin"
     matcher = "200-399"
   }
-
-  lifecycle {
-    prevent_destroy = true
-  }
 }
 
 resource "aws_lb_target_group" "green" {
@@ -171,10 +167,6 @@ resource "aws_lb_target_group" "green" {
   health_check {
     path    = "/admin"
     matcher = "200-399"
-  }
-
-  lifecycle {
-    prevent_destroy = true
   }
 }
 
