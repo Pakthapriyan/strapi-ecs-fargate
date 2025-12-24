@@ -282,10 +282,14 @@ resource "aws_ecs_service" "strapi" {
     aws_lb_listener.test
   ]
 
-  lifecycle {
-    ignore_changes = [
-      task_definition
-    ]
-  }
+lifecycle {
+  ignore_changes = [
+    task_definition,
+    desired_count,
+    load_balancer,
+    network_configuration
+  ]
+}
+
 }
 
