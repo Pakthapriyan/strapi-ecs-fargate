@@ -37,10 +37,14 @@ jobs:
             -var="ecr_image_uri=301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:latest"
 
       # 6️⃣ Render task definition
-      - name: Render task definition
+      - name: Render ECS task definition
         run: |
-          sed "s|<IMAGE_URI>|301782007642.dkr.ecr.ap-south-1.amazonaws.com/paktha-strapi-ecs:latest|g" \
-          app/taskdef-template.json > taskdef.json
+          sed -i "s|<IMAGE_URI>|${{ env.ECR_IMAGE }}|g" taskdef-template.json
+          sed -i "s|<APP_KEYS>|${{ secrets.APP_KEYS }}|g" taskdef-template.json
+          sed -i "s|<API_TOKEN_SALT>|${{ secrets.API_TOKEN_SALT }}|g" taskdef-template.json
+          sed -i "s|<ADMIN_JWT_SECRET>|${{ secrets.ADMIN_JWT_SECRET }}|g" taskdef-template.json
+          sed -i "s|<JWT_SECRET>|${{ secrets.JWT_SECRET }}|g" taskdef-template.json
+
 
       # 7️⃣ 🚀 DEPLOY (PASTE IT HERE)
       - name: Deploy ECS Blue/Green
