@@ -157,8 +157,12 @@ resource "aws_lb_target_group" "blue" {
   target_type = "ip"
 
   health_check {
-    path                = "/admin"
-    matcher             = "200-399"
+    path    = "/admin"
+    matcher = "200-399"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
 
@@ -170,10 +174,15 @@ resource "aws_lb_target_group" "green" {
   target_type = "ip"
 
   health_check {
-    path                = "/admin"
-    matcher             = "200-399"
+    path    = "/admin"
+    matcher = "200-399"
+  }
+
+  lifecycle {
+    prevent_destroy = true
   }
 }
+
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.strapi.arn
