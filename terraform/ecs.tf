@@ -50,7 +50,7 @@ resource "aws_subnet" "public_b" {
 }
 
 ################################
-# ROUTE TABLE
+# ROUTE TABLE (PUBLIC)
 ################################
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.strapi.id
@@ -65,18 +65,18 @@ resource "aws_route_table" "public" {
   }
 }
 
-resource "aws_route_table_association" "a" {
+resource "aws_route_table_association" "public_a" {
   subnet_id      = aws_subnet.public_a.id
   route_table_id = aws_route_table.public.id
 }
 
-resource "aws_route_table_association" "b" {
+resource "aws_route_table_association" "public_b" {
   subnet_id      = aws_subnet.public_b.id
   route_table_id = aws_route_table.public.id
 }
 
 ################################
-# ALB SECURITY GROUP
+# SECURITY GROUPS
 ################################
 resource "aws_security_group" "alb" {
   name   = "paktha-strapi-alb-sg"
@@ -97,9 +97,6 @@ resource "aws_security_group" "alb" {
   }
 }
 
-################################
-# ECS SECURITY GROUP
-################################
 resource "aws_security_group" "ecs" {
   name   = "paktha-strapi-ecs-sg"
   vpc_id = aws_vpc.strapi.id
@@ -122,7 +119,6 @@ resource "aws_security_group" "ecs" {
 ################################
 # IAM ROLES (EXISTING)
 ################################
-
 data "aws_iam_role" "ecs_execution_role" {
   name = "paktha-ecs-execution-role"
 }
@@ -134,7 +130,6 @@ data "aws_iam_role" "ecs_task_role" {
 ################################
 # ECS CLUSTER
 ################################
-
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
 }
@@ -142,12 +137,16 @@ resource "aws_ecs_cluster" "strapi" {
 ################################
 # ALB
 ################################
-
 resource "aws_lb" "strapi" {
   name               = "paktha-strapi-alb"
   load_balancer_type = "application"
-  subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
-  security_groups    = [aws_security_group.alb.id]
+
+  subnets = [
+    aws_subnet.public_a.id,
+    aws_subnet.public_b.id
+  ]
+
+  security_groups = [aws_security_group.alb.id]
 }
 
 resource "aws_lb_target_group" "blue" {
@@ -158,7 +157,8 @@ resource "aws_lb_target_group" "blue" {
   target_type = "ip"
 
   health_check {
-    path = "/admin"
+    path                = "/admin"
+    matcher             = "200-399"
   }
 }
 
@@ -170,7 +170,8 @@ resource "aws_lb_target_group" "green" {
   target_type = "ip"
 
   health_check {
-    path = "/admin"
+    path                = "/admin"
+    matcher             = "200-399"
   }
 }
 
@@ -185,11 +186,9 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-
 ################################
 # ECS TASK DEFINITION
 ################################
-
 resource "aws_ecs_task_definition" "strapi" {
   family                   = "paktha-strapi-task"
   requires_compatibilities = ["FARGATE"]
@@ -222,24 +221,26 @@ resource "aws_ecs_task_definition" "strapi" {
 }
 
 ################################
-# ECS SERVICE (CODEDEPLOY CONTROLLED)
+# ECS SERVICE (CODEDEPLOY)
 ################################
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
   cluster         = aws_ecs_cluster.strapi.id
   task_definition = aws_ecs_task_definition.strapi.arn
   desired_count   = 1
-
-  launch_type = "FARGATE"
+  launch_type     = "FARGATE"
 
   deployment_controller {
     type = "CODE_DEPLOY"
   }
 
   network_configuration {
-    subnets          = data.aws_subnets.alb.ids
+    subnets = [
+      aws_subnet.public_a.id,
+      aws_subnet.public_b.id
+    ]
     security_groups  = [aws_security_group.ecs.id]
-    assign_public_ip = true   
+    assign_public_ip = true
   }
 
   load_balancer {
@@ -258,4 +259,3 @@ resource "aws_ecs_service" "strapi" {
     ]
   }
 }
-
