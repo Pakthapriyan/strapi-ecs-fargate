@@ -24,9 +24,15 @@ jobs:
           aws-region: eu-north-1
 
       - name: Terraform Init (S3 backend)
-        run: terraform init
+        working-directory: terraform
+        run: terraform init -input=false
+
+      - name: Verify Backend Loaded
+        working-directory: terraform
+        run: terraform state list
 
       - name: REMOVE STALE SECURITY GROUPS FROM STATE
+        working-directory: terraform
         run: |
           terraform state rm aws_security_group.ecs || true
           terraform state rm aws_security_group.alb || true
