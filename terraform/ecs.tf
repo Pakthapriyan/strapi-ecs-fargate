@@ -1,43 +1,114 @@
 ################################
-# DEFAULT VPC & SUBNETS
+# VPC
 ################################
+resource "aws_vpc" "strapi" {
+  cidr_block           = "10.50.0.0/16"
+  enable_dns_support   = true
+  enable_dns_hostnames = true
 
-data "aws_vpc" "default" {
-  default = true
-}
-
-data "aws_subnets" "alb" {
-  filter {
-    name   = "vpc-id"
-    values = [data.aws_vpc.default.id]
-  }
-
-  filter {
-    name   = "default-for-az"
-    values = ["true"]
+  tags = {
+    Name = "paktha-strapi-vpc"
   }
 }
 
 ################################
-# SECURITY GROUPS
+# INTERNET GATEWAY
 ################################
+resource "aws_internet_gateway" "strapi" {
+  vpc_id = aws_vpc.strapi.id
 
-# EXISTING ALB SECURITY GROUP (DO NOT CREATE)
-data "aws_security_group" "alb" {
+  tags = {
+    Name = "paktha-strapi-igw"
+  }
+}
+
+################################
+# PUBLIC SUBNETS
+################################
+resource "aws_subnet" "public_a" {
+  vpc_id                  = aws_vpc.strapi.id
+  cidr_block              = "10.50.1.0/24"
+  availability_zone       = "ap-south-1a"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "paktha-strapi-public-a"
+    Tier = "public"
+  }
+}
+
+resource "aws_subnet" "public_b" {
+  vpc_id                  = aws_vpc.strapi.id
+  cidr_block              = "10.50.2.0/24"
+  availability_zone       = "ap-south-1b"
+  map_public_ip_on_launch = true
+
+  tags = {
+    Name = "paktha-strapi-public-b"
+    Tier = "public"
+  }
+}
+
+################################
+# ROUTE TABLE
+################################
+resource "aws_route_table" "public" {
+  vpc_id = aws_vpc.strapi.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.strapi.id
+  }
+
+  tags = {
+    Name = "paktha-strapi-public-rt"
+  }
+}
+
+resource "aws_route_table_association" "a" {
+  subnet_id      = aws_subnet.public_a.id
+  route_table_id = aws_route_table.public.id
+}
+
+resource "aws_route_table_association" "b" {
+  subnet_id      = aws_subnet.public_b.id
+  route_table_id = aws_route_table.public.id
+}
+
+################################
+# ALB SECURITY GROUP
+################################
+resource "aws_security_group" "alb" {
   name   = "paktha-strapi-alb-sg"
-  vpc_id = data.aws_vpc.default.id
+  vpc_id = aws_vpc.strapi.id
+
+  ingress {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
 }
 
-# ECS TASK SECURITY GROUP
+################################
+# ECS SECURITY GROUP
+################################
 resource "aws_security_group" "ecs" {
   name   = "paktha-strapi-ecs-sg"
-  vpc_id = data.aws_vpc.default.id
+  vpc_id = aws_vpc.strapi.id
 
   ingress {
     from_port       = 1337
     to_port         = 1337
     protocol        = "tcp"
-    security_groups = [data.aws_security_group.alb.id]
+    security_groups = [aws_security_group.alb.id]
   }
 
   egress {
@@ -75,29 +146,19 @@ resource "aws_ecs_cluster" "strapi" {
 resource "aws_lb" "strapi" {
   name               = "paktha-strapi-alb"
   load_balancer_type = "application"
-  subnets            = data.aws_subnets.alb.ids
-  security_groups    = [data.aws_security_group.alb.id]
+  subnets            = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+  security_groups    = [aws_security_group.alb.id]
 }
-
-################################
-# TARGET GROUPS (BLUE / GREEN)
-################################
 
 resource "aws_lb_target_group" "blue" {
   name        = "paktha-strapi-blue"
   port        = 1337
   protocol    = "HTTP"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = aws_vpc.strapi.id
   target_type = "ip"
 
   health_check {
-    path                = "/admin"
-    protocol            = "HTTP"
-    matcher             = "200-399"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
+    path = "/admin"
   }
 }
 
@@ -105,23 +166,13 @@ resource "aws_lb_target_group" "green" {
   name        = "paktha-strapi-green"
   port        = 1337
   protocol    = "HTTP"
-  vpc_id      = data.aws_vpc.default.id
+  vpc_id      = aws_vpc.strapi.id
   target_type = "ip"
 
   health_check {
-    path                = "/admin"
-    protocol            = "HTTP"
-    matcher             = "200-399"
-    interval            = 30
-    timeout             = 5
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
+    path = "/admin"
   }
 }
-
-################################
-# ALB LISTENER (POINT TO BLUE)
-################################
 
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.strapi.arn
@@ -133,6 +184,7 @@ resource "aws_lb_listener" "http" {
     target_group_arn = aws_lb_target_group.blue.arn
   }
 }
+
 
 ################################
 # ECS TASK DEFINITION
@@ -175,11 +227,10 @@ resource "aws_ecs_task_definition" "strapi" {
 resource "aws_ecs_service" "strapi" {
   name            = "paktha-strapi-service"
   cluster         = aws_ecs_cluster.strapi.id
-  desired_count   = 1
-  launch_type     = "FARGATE"
-
-  # REQUIRED ONLY FOR INITIAL CREATION
   task_definition = aws_ecs_task_definition.strapi.arn
+  desired_count   = 1
+
+  launch_type = "FARGATE"
 
   deployment_controller {
     type = "CODE_DEPLOY"
@@ -188,7 +239,7 @@ resource "aws_ecs_service" "strapi" {
   network_configuration {
     subnets          = data.aws_subnets.alb.ids
     security_groups  = [aws_security_group.ecs.id]
-    assign_public_ip = true
+    assign_public_ip = true   
   }
 
   load_balancer {
@@ -197,16 +248,13 @@ resource "aws_ecs_service" "strapi" {
     container_port   = 1337
   }
 
-  depends_on = [
-    aws_lb_listener.http
-  ]
+  depends_on = [aws_lb_listener.http]
 
-  # 🔐 VERY IMPORTANT — PREVENTS ALL YOUR PREVIOUS ERRORS
   lifecycle {
     ignore_changes = [
       task_definition,
-      load_balancer,
-      network_configuration
+      network_configuration,
+      load_balancer
     ]
   }
 }
