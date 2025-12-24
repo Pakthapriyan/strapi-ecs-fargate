@@ -91,18 +91,22 @@ resource "aws_security_group" "alb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  tags = {
+  }tags = {
     Name = "paktha-strapi-alb-sg"
   }
 }
-
 
 # ECS TASK SECURITY GROUP
 resource "aws_security_group" "ecs" {
@@ -187,6 +191,7 @@ resource "aws_lb_target_group" "green" {
 }
 
 
+# PROD LISTENER
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.strapi.arn
   port              = 80
@@ -197,6 +202,19 @@ resource "aws_lb_listener" "http" {
     target_group_arn = aws_lb_target_group.blue.arn
   }
 }
+
+# TEST LISTENER (REQUIRED BY CODEDEPLOY)
+resource "aws_lb_listener" "test" {
+  load_balancer_arn = aws_lb.strapi.arn
+  port              = 9000
+  protocol          = "HTTP"
+
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.green.arn
+  }
+}
+
 
 ################################
 # ECS TASK DEFINITION
@@ -247,11 +265,8 @@ resource "aws_ecs_service" "strapi" {
   }
 
   network_configuration {
-    subnets = [
-      aws_subnet.public_a.id,
-      aws_subnet.public_b.id
-    ]
-    security_groups  = [aws_security_group.ecs.id]
+    subnets         = [aws_subnet.public_a.id, aws_subnet.public_b.id]
+    security_groups = [aws_security_group.ecs.id]
     assign_public_ip = true
   }
 
@@ -261,13 +276,15 @@ resource "aws_ecs_service" "strapi" {
     container_port   = 1337
   }
 
-  depends_on = [aws_lb_listener.http]
+  depends_on = [
+    aws_lb_listener.http,
+    aws_lb_listener.test
+  ]
 
   lifecycle {
     ignore_changes = [
-      task_definition,
-      network_configuration,
-      load_balancer
+      task_definition
     ]
   }
 }
+
