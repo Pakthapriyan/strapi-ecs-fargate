@@ -75,11 +75,9 @@ resource "aws_route_table_association" "public_b" {
   route_table_id = aws_route_table.public.id
 }
 
-
 ################################
 # SECURITY GROUPS
 ################################
-
 resource "aws_security_group" "alb" {
   name   = "paktha-strapi-alb-sg"
   vpc_id = aws_vpc.strapi.id
@@ -104,12 +102,12 @@ resource "aws_security_group" "alb" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
   tags = {
     Name = "paktha-strapi-alb-sg"
   }
 }
 
-# ECS TASK SECURITY GROUP
 resource "aws_security_group" "ecs" {
   name   = "paktha-strapi-ecs-sg"
   vpc_id = aws_vpc.strapi.id
@@ -118,7 +116,7 @@ resource "aws_security_group" "ecs" {
     from_port       = 1337
     to_port         = 1337
     protocol        = "tcp"
-    security_groups = [aws_security_group.alb.id]  
+    security_groups = [aws_security_group.alb.id]
   }
 
   egress {
@@ -128,8 +126,6 @@ resource "aws_security_group" "ecs" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
-
-
 
 ################################
 # IAM ROLES (EXISTING)
@@ -147,6 +143,11 @@ data "aws_iam_role" "ecs_task_role" {
 ################################
 resource "aws_ecs_cluster" "strapi" {
   name = "paktha-strapi-cluster"
+
+  setting {
+    name  = "containerInsights"
+    value = "enabled"
+  }
 }
 
 ################################
@@ -159,12 +160,12 @@ resource "aws_lb" "strapi" {
     aws_subnet.public_a.id,
     aws_subnet.public_b.id
   ]
-  security_groups    = [aws_security_group.alb.id]
+  security_groups = [aws_security_group.alb.id]
 }
 
-
-
-
+################################
+# TARGET GROUPS
+################################
 resource "aws_lb_target_group" "blue" {
   name        = "paktha-strapi-blue"
   port        = 1337
@@ -191,8 +192,9 @@ resource "aws_lb_target_group" "green" {
   }
 }
 
-
-# PROD LISTENER
+################################
+# LISTENERS
+################################
 resource "aws_lb_listener" "http" {
   load_balancer_arn = aws_lb.strapi.arn
   port              = 80
@@ -204,7 +206,6 @@ resource "aws_lb_listener" "http" {
   }
 }
 
-# TEST LISTENER (REQUIRED BY CODEDEPLOY)
 resource "aws_lb_listener" "test" {
   load_balancer_arn = aws_lb.strapi.arn
   port              = 9000
@@ -216,49 +217,17 @@ resource "aws_lb_listener" "test" {
   }
 }
 
-
 ################################
-# ECS TASK DEFINITION
-################################
-resource "aws_ecs_task_definition" "strapi" {
-  family                   = "paktha-strapi-task"
-  requires_compatibilities = ["FARGATE"]
-  network_mode             = "awsvpc"
-  cpu                      = "512"
-  memory                   = "1024"
-
-  execution_role_arn = data.aws_iam_role.ecs_execution_role.arn
-  task_role_arn      = data.aws_iam_role.ecs_task_role.arn
-
-  container_definitions = jsonencode([
-    {
-      name      = "strapi"
-      essential = true
-
-      portMappings = [
-        {
-          containerPort = 1337
-          protocol      = "tcp"
-        }
-      ]
-
-      environment = [
-        { name = "HOST", value = "0.0.0.0" },
-        { name = "PORT", value = "1337" }
-      ]
-    }
-  ])
-}
-
-################################
-# ECS SERVICE (CODEDEPLOY)
+# ECS SERVICE (CODEDEPLOY OWNED)
 ################################
 resource "aws_ecs_service" "strapi" {
-  name            = "paktha-strapi-service"
-  cluster         = aws_ecs_cluster.strapi.id
-  task_definition = aws_ecs_task_definition.strapi.arn
-  desired_count   = 1
-  launch_type     = "FARGATE"
+  name      = "paktha-strapi-service"
+  cluster   = aws_ecs_cluster.strapi.id
+  launch_type = "FARGATE"
+  desired_count = 1
+
+  # 🔑 Placeholder — CodeDeploy overrides this
+  task_definition = "paktha-strapi-task"
 
   deployment_controller {
     type = "CODE_DEPLOY"
@@ -281,14 +250,12 @@ resource "aws_ecs_service" "strapi" {
     aws_lb_listener.test
   ]
 
-lifecycle {
-  ignore_changes = [
-    task_definition,
-    desired_count,
-    load_balancer,
-    network_configuration
-  ]
+  lifecycle {
+    ignore_changes = [
+      task_definition,
+      desired_count,
+      load_balancer,
+      network_configuration
+    ]
+  }
 }
-
-}
-
