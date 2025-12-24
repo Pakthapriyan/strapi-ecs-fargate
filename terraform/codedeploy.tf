@@ -1,7 +1,6 @@
 ################################
 # CODEDEPLOY APPLICATION
 ################################
-
 resource "aws_codedeploy_app" "strapi" {
   name             = "paktha-strapi-codedeploy"
   compute_platform = "ECS"
@@ -10,7 +9,6 @@ resource "aws_codedeploy_app" "strapi" {
 ################################
 # IAM ROLE FOR CODEDEPLOY
 ################################
-
 resource "aws_iam_role" "codedeploy" {
   name = "paktha-codedeploy-ecs-role"
 
@@ -34,17 +32,42 @@ resource "aws_iam_role_policy_attachment" "codedeploy" {
 ################################
 # CODEDEPLOY DEPLOYMENT GROUP
 ################################
-
 resource "aws_codedeploy_deployment_group" "strapi" {
   app_name              = aws_codedeploy_app.strapi.name
   deployment_group_name = "paktha-strapi-dg"
   service_role_arn      = aws_iam_role.codedeploy.arn
 
-  deployment_config_name = "CodeDeployDefault.ECSCanary10Percent5Minutes"
+  # ✅ USE ECS-SAFE CONFIG (Canary is fine, but this is safest first)
+  deployment_config_name = "CodeDeployDefault.ECSAllAtOnce"
 
   deployment_style {
     deployment_type   = "BLUE_GREEN"
     deployment_option = "WITH_TRAFFIC_CONTROL"
+  }
+
+  ecs_service {
+    cluster_name = aws_ecs_cluster.strapi.name
+    service_name = aws_ecs_service.strapi.name
+  }
+
+  load_balancer_info {
+    target_group_pair_info {
+
+      # ✅ REQUIRED
+      prod_traffic_route {
+        listener_arns = [aws_lb_listener.http.arn]
+      }
+
+      # ✅ MUST MATCH ECS SERVICE
+      target_group {
+        name = aws_lb_target_group.blue.name
+      }
+
+      # ✅ REQUIRED SECOND TARGET GROUP
+      target_group {
+        name = aws_lb_target_group.green.name
+      }
+    }
   }
 
   auto_rollback_configuration {
@@ -60,27 +83,6 @@ resource "aws_codedeploy_deployment_group" "strapi" {
     terminate_blue_instances_on_deployment_success {
       action                           = "TERMINATE"
       termination_wait_time_in_minutes = 5
-    }
-  }
-
-  ecs_service {
-    cluster_name = aws_ecs_cluster.strapi.name
-    service_name = aws_ecs_service.strapi.name
-  }
-
-  load_balancer_info {
-    target_group_pair_info {
-      prod_traffic_route {
-        listener_arns = [aws_lb_listener.http.arn]
-      }
-
-      target_group {
-        name = aws_lb_target_group.blue.name
-      }
-
-      target_group {
-        name = aws_lb_target_group.green.name
-      }
     }
   }
 }
