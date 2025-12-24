@@ -51,7 +51,7 @@ jobs:
       
 
       # 7️⃣ 🚀 DEPLOY (PASTE IT HERE)
-      - name: Deploy to ECS (Blue/Green)
+      - name: Deploy to ECS using CodeDeploy
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
         with:
           task-definition: taskdef.json
@@ -60,4 +60,5 @@ jobs:
           codedeploy-appspec: appspec.yaml
           codedeploy-application: paktha-strapi-codedeploy
           codedeploy-deployment-group: paktha-strapi-dg
+
 
