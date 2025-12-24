@@ -102,6 +102,34 @@ resource "aws_security_group" "ecs" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+################################
+# SECURITY GROUPS
+################################
+
+data "aws_security_group" "alb" {
+  name   = "paktha-strapi-alb-sg"
+  vpc_id = aws_vpc.strapi.id
+}
+
+# ECS TASK SECURITY GROUP
+resource "aws_security_group" "ecs" {
+  name   = "paktha-strapi-ecs-sg"
+  vpc_id = aws_vpc.strapi.id
+
+  ingress {
+    from_port       = 1337
+    to_port         = 1337
+    protocol        = "tcp"
+    security_groups = [data.aws_security_group.alb.id]  # ✅ FIX
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 
 ################################
 # IAM ROLES (EXISTING)
@@ -127,8 +155,10 @@ resource "aws_ecs_cluster" "strapi" {
 resource "aws_lb" "strapi" {
   name               = "paktha-strapi-alb"
   load_balancer_type = "application"
-  subnets            = data.aws_subnets.public.ids
-
+  subnets            = [
+    aws_subnet.public_a.id,
+    aws_subnet.public_b.id
+  ]
 
   lifecycle {
     ignore_changes = [
@@ -137,6 +167,7 @@ resource "aws_lb" "strapi" {
     ]
   }
 }
+
 
 
 resource "aws_lb_target_group" "blue" {
