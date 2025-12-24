@@ -3,11 +3,6 @@ variable "aws_region" {
 }
 
 
-variable "ecr_image_uri" {
-  description = "ECR image URI with tag"
-  type        = string
-}
-
 variable "app_keys" {
   description = "Strapi APP_KEYS"
   type        = string
