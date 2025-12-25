@@ -59,13 +59,14 @@ jobs:
       ################################
       - name: Render ECS task definition
         run: |
-          cp taskdef-template.json taskdef.json
+          export IMAGE_URI=${{ env.ECR_IMAGE }}
+          export APP_KEYS="${{ secrets.APP_KEYS }}"
+          export API_TOKEN_SALT="${{ secrets.API_TOKEN_SALT }}"
+          export ADMIN_JWT_SECRET="${{ secrets.ADMIN_JWT_SECRET }}"
+          export JWT_SECRET="${{ secrets.JWT_SECRET }}"
+      
+          envsubst < taskdef-template.json > taskdef.json
 
-          sed -i "s|<IMAGE_URI>|${{ env.ECR_IMAGE }}|g" taskdef.json
-          sed -i "s|<APP_KEYS>|${{ secrets.APP_KEYS }}|g" taskdef.json
-          sed -i "s|<API_TOKEN_SALT>|${{ secrets.API_TOKEN_SALT }}|g" taskdef.json
-          sed -i "s|<ADMIN_JWT_SECRET>|${{ secrets.ADMIN_JWT_SECRET }}|g" taskdef.json
-          sed -i "s|<JWT_SECRET>|${{ secrets.JWT_SECRET }}|g" taskdef.json
 
       ################################
       # 8️⃣ Verify task definition (debug)
