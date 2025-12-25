@@ -174,10 +174,15 @@ resource "aws_lb_target_group" "blue" {
   target_type = "ip"
 
   health_check {
-    path    = "/admin"
-    matcher = "200-399"
+    path                = "/"
+    interval            = 30
+    timeout             = 10
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    matcher             = "200-399"
   }
 }
+
 
 resource "aws_lb_target_group" "green" {
   name        = "paktha-strapi-green"
@@ -187,8 +192,12 @@ resource "aws_lb_target_group" "green" {
   target_type = "ip"
 
   health_check {
-    path    = "/admin"
-    matcher = "200-399"
+    path                = "/"
+    interval            = 30
+    timeout             = 10
+    healthy_threshold   = 2
+    unhealthy_threshold = 3
+    matcher             = "200-399"
   }
 }
 
