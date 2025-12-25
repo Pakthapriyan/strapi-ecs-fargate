@@ -22,15 +22,15 @@
       ],
 
       "environment": [
-        { "name": "NODE_ENV", "value": "production" },
-        { "name": "HOST", "value": "0.0.0.0" },
-        { "name": "PORT", "value": "1337" },
-
-        { "name": "APP_KEYS", "value": "<APP_KEYS>" },
-        { "name": "API_TOKEN_SALT", "value": "<API_TOKEN_SALT>" },
-        { "name": "ADMIN_JWT_SECRET", "value": "<ADMIN_JWT_SECRET>" },
-        { "name": "JWT_SECRET", "value": "<JWT_SECRET>" }
-      ],
+      { "name": "NODE_ENV", "value": "production" },
+      { "name": "HOST", "value": "0.0.0.0" },
+      { "name": "PORT", "value": "1337" },
+  
+      { "name": "APP_KEYS", "value": "${APP_KEYS}" },
+      { "name": "API_TOKEN_SALT", "value": "${API_TOKEN_SALT}" },
+      { "name": "ADMIN_JWT_SECRET", "value": "${ADMIN_JWT_SECRET}" },
+      { "name": "JWT_SECRET", "value": "${JWT_SECRET}" }
+    ],
 
       "healthCheck": {
         "command": ["CMD-SHELL", "curl -f http://localhost:1337/admin || exit 1"],
