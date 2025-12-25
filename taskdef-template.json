@@ -11,7 +11,7 @@
   "containerDefinitions": [
     {
       "name": "strapi",
-      "image": "<IMAGE_URI>",
+      "image": "${IMAGE_URI}",
       "essential": true,
 
       "portMappings": [
