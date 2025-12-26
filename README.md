@@ -20,6 +20,7 @@ Steps Completed
   
   - Pushed local setup to a personal GitHub repository
 
+-- 
 
 # Task #2 – Dockerizing the Strapi Application
 ## Objective
