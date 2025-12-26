@@ -48,13 +48,6 @@ jobs:
       - name: Verify task definition
         run: |
           cat taskdef.json | grep image
-      
-
-      - name: Verify task definition image
-        run: |
-          echo "Rendered image:"
-          grep '"image"' taskdef.json
-
 
       - name: Deploy to ECS using CodeDeploy
         uses: aws-actions/amazon-ecs-deploy-task-definition@v1
