@@ -215,6 +215,7 @@ resource "aws_lb_listener" "http" {
   }
 }
 
+
 resource "aws_lb_listener" "test" {
   load_balancer_arn = aws_lb.strapi.arn
   port              = 9000
@@ -230,12 +231,12 @@ resource "aws_lb_listener" "test" {
 # ECS SERVICE (CODEDEPLOY OWNED)
 ################################
 resource "aws_ecs_service" "strapi" {
-  name      = "paktha-strapi-service"
-  cluster   = aws_ecs_cluster.strapi.id
-  launch_type = "FARGATE"
-  desired_count = 1
+  name            = "paktha-strapi-service"
+  cluster         = aws_ecs_cluster.strapi.id
+  launch_type     = "FARGATE"
+  desired_count   = 1
 
-  # 🔑 Placeholder — CodeDeploy overrides this
+  # Placeholder – CodeDeploy will override
   task_definition = "paktha-strapi-task"
 
   deployment_controller {
@@ -248,16 +249,12 @@ resource "aws_ecs_service" "strapi" {
     assign_public_ip = true
   }
 
+  # REQUIRED ONLY ONCE – initial wiring
   load_balancer {
     target_group_arn = aws_lb_target_group.blue.arn
     container_name   = "strapi"
     container_port   = 1337
   }
-
-  depends_on = [
-    aws_lb_listener.http,
-    aws_lb_listener.test
-  ]
 
   lifecycle {
     ignore_changes = [
