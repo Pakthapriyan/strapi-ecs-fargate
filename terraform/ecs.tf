@@ -174,13 +174,14 @@ resource "aws_lb_target_group" "blue" {
   target_type = "ip"
 
   health_check {
-    path                = "/"
-    interval            = 30
-    timeout             = 10
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
-    matcher             = "200-399"
-  }
+  path                = "/admin"
+  interval            = 30
+  timeout             = 10
+  healthy_threshold   = 2
+  unhealthy_threshold = 5
+  matcher             = "200-399"
+}
+
 }
 
 
@@ -192,13 +193,14 @@ resource "aws_lb_target_group" "green" {
   target_type = "ip"
 
   health_check {
-    path                = "/"
-    interval            = 30
-    timeout             = 10
-    healthy_threshold   = 2
-    unhealthy_threshold = 3
-    matcher             = "200-399"
-  }
+  path                = "/admin"
+  interval            = 30
+  timeout             = 10
+  healthy_threshold   = 2
+  unhealthy_threshold = 5
+  matcher             = "200-399"
+}
+
 }
 
 ################################
@@ -235,8 +237,8 @@ resource "aws_ecs_service" "strapi" {
   cluster         = aws_ecs_cluster.strapi.id
   launch_type     = "FARGATE"
   desired_count   = 1
+  health_check_grace_period_seconds = 120
 
-  # Placeholder – CodeDeploy will override
   task_definition = "paktha-strapi-task"
 
   deployment_controller {
@@ -249,7 +251,7 @@ resource "aws_ecs_service" "strapi" {
     assign_public_ip = true
   }
 
-  # REQUIRED ONLY ONCE – initial wiring
+
   load_balancer {
     target_group_arn = aws_lb_target_group.blue.arn
     container_name   = "strapi"
