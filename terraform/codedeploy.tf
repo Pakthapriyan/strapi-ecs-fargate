@@ -37,7 +37,7 @@ resource "aws_codedeploy_deployment_group" "strapi" {
   deployment_group_name = "paktha-strapi-dg"
   service_role_arn      = aws_iam_role.codedeploy.arn
 
-  deployment_config_name = "CodeDeployDefault.ECSAllAtOnce"
+  deployment_config_name = "CodeDeployDefault.ECSCanary10Percent5Minutes"
 
   deployment_style {
     deployment_type   = "BLUE_GREEN"
